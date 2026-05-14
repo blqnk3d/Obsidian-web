@@ -1,0 +1,40 @@
+import { getImage } from '../core/state.js';
+
+const HIGHLIGHT_RE = /==([^=]+)==/g;
+const TAG_RE = /(?:^|\s)(#[^\s#!@$%^&*(),.?":{}|<>]+)/g;
+const WIKILINK_RE = /\[\[([^\]]+)\]\]/g;
+const EMBED_IMAGE_RE = /!\[\[([^\]]+\.(?:png|jpg|jpeg|gif|svg|webp|bmp|ico))\]\]/gi;
+
+function preprocessHighlights(text) {
+  return text.replace(HIGHLIGHT_RE, '<mark class="highlight">$1</mark>');
+}
+
+function preprocessTags(text) {
+  return text.replace(TAG_RE, (match, tag) => {
+    const prefix = match.startsWith(' ') ? ' ' : '';
+    return `${prefix}<span class="tag">${tag}</span>`;
+  });
+}
+
+function preprocessWikilinks(text) {
+  return text.replace(WIKILINK_RE, '<a href="#" data-wikilink="$1">$1</a>');
+}
+
+function preprocessImages(text) {
+  return text.replace(EMBED_IMAGE_RE, (match, name) => {
+    const data = getImage(name);
+    if (data) {
+      return `<img src="${data}" alt="${name}" class="embed-image">`;
+    }
+    return `<span class="missing-embed" title="Image not found: ${name}">${match}</span>`;
+  });
+}
+
+export function preprocess(text) {
+  let result = text;
+  result = preprocessHighlights(result);
+  result = preprocessTags(result);
+  result = preprocessWikilinks(result);
+  result = preprocessImages(result);
+  return result;
+}
