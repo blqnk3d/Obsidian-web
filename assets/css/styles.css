@@ -131,7 +131,7 @@ html, body {
   z-index: 50;
   top: 44px;
   left: 12px;
-  width: 220px;
+  width: 280px;
   max-height: calc(100vh - 60px);
   background: var(--bg-secondary);
   border: 1px solid var(--border);
@@ -759,12 +759,6 @@ select.rename-input {
 .export-option:hover {
   background: var(--bg-tertiary);
   border-color: var(--accent);
-}
-.export-option-icon {
-  font-size: 18px;
-  width: 28px;
-  text-align: center;
-  flex-shrink: 0;
 }
 .export-option-label {
   font-weight: 600;

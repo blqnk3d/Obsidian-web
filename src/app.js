@@ -52,10 +52,25 @@ function initSidebarWindow() {
 
   if (!sidebar || !header) return;
 
+  let positioned = false;
+
   /* ── Persist visibility ── */
   const stored = localStorage.getItem('sidebar-visible');
   if (stored === 'false') {
     sidebar.classList.add('hidden');
+  }
+
+  function positionUnderButton() {
+    if (positioned) return;
+    const rect = showBtn?.getBoundingClientRect();
+    if (!rect) return;
+    sidebar.style.left = Math.max(12, rect.left) + 'px';
+    sidebar.style.top = (rect.bottom + 4) + 'px';
+    sidebar.style.right = 'auto';
+  }
+
+  if (!sidebar.classList.contains('hidden')) {
+    positionUnderButton();
   }
 
   /* ── Drag by header ── */
@@ -65,6 +80,7 @@ function initSidebarWindow() {
   header.addEventListener('mousedown', (e) => {
     if (e.target.closest('.window-controls')) return;
     dragging = true;
+    positioned = true;
     startX = e.clientX;
     startY = e.clientY;
     origLeft = sidebar.offsetLeft;
@@ -98,6 +114,13 @@ function initSidebarWindow() {
   /* ── Toggle via Files button ── */
   showBtn?.addEventListener('click', () => {
     sidebar.classList.toggle('hidden');
+    if (!sidebar.classList.contains('hidden')) {
+      if (!positioned) positionUnderButton();
+      const imgOverlay = document.getElementById('images-overlay');
+      if (imgOverlay && !imgOverlay.classList.contains('hidden')) {
+        imgOverlay.classList.add('hidden');
+      }
+    }
     localStorage.setItem('sidebar-visible', !sidebar.classList.contains('hidden'));
   });
 
@@ -105,6 +128,13 @@ function initSidebarWindow() {
   hideBtn?.addEventListener('click', () => {
     sidebar.classList.add('hidden');
     localStorage.setItem('sidebar-visible', 'false');
+  });
+
+  /* ── Reposition on resize if not dragged ── */
+  window.addEventListener('resize', () => {
+    if (!positioned && !sidebar.classList.contains('hidden')) {
+      positionUnderButton();
+    }
   });
 }
 

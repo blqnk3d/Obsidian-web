@@ -19,6 +19,11 @@ export function initHandlers() {
     imagesOverlay?.classList.toggle('hidden');
     if (!imagesOverlay?.classList.contains('hidden')) {
       rebuildImagesList(imagesOverlayList);
+      const sidebar = document.getElementById('sidebar');
+      if (sidebar && !sidebar.classList.contains('hidden')) {
+        sidebar.classList.add('hidden');
+        localStorage.setItem('sidebar-visible', 'false');
+      }
     }
   });
   document.getElementById('images-overlay-close')?.addEventListener('click', () => {
@@ -358,6 +363,58 @@ function showSettingsModal() {
   hint.style.cssText = 'font-size:11px;color:var(--text-muted);margin-top:6px;';
   hint.textContent = 'Note: when dragging a file with a name, the original name is kept. Other rules apply to clipboard pastes.';
 
+  /* ── Storage section ── */
+  const storageDiv = document.createElement('div');
+  storageDiv.style.cssText = 'border-top:1px solid var(--border);margin-top:14px;padding-top:12px;';
+
+  const storageLabel = document.createElement('div');
+  storageLabel.className = 'rename-label';
+  storageLabel.textContent = 'Storage';
+  storageLabel.style.marginBottom = '8px';
+
+  const storageRows = document.createElement('div');
+  storageRows.style.cssText = 'font-size:12px;color:var(--text-secondary);line-height:1.7;';
+
+  const notesCount = state.files.length;
+  const imgCount = state.images.size;
+  let imgBytes = 0;
+  for (const data of state.images.values()) {
+    imgBytes += Math.round(data.length * 0.75);
+  }
+  const fmtSize = (bytes) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
+  storageRows.innerHTML = `
+    <div>Notes: ${notesCount}</div>
+    <div>Images: ${imgCount} (${fmtSize(imgBytes)} actual)</div>
+    <div id="storage-browser-line">Browser quota: loading…</div>
+  `;
+
+  const barOuter = document.createElement('div');
+  barOuter.style.cssText = 'height:4px;background:var(--bg-tertiary);border-radius:2px;margin-top:6px;overflow:hidden;';
+  const barInner = document.createElement('div');
+  barInner.id = 'storage-bar';
+  barInner.style.cssText = 'height:100%;width:0;background:var(--accent);border-radius:2px;transition:width 0.3s;';
+  barOuter.appendChild(barInner);
+
+  storageDiv.appendChild(storageLabel);
+  storageDiv.appendChild(storageRows);
+  storageDiv.appendChild(barOuter);
+
+  navigator.storage?.estimate().then(({ usage, quota }) => {
+    const pct = Math.min(100, Math.round((usage / quota) * 100));
+    const el = document.getElementById('storage-browser-line');
+    const bar = document.getElementById('storage-bar');
+    if (el) el.textContent = `Browser: ${fmtSize(usage)} / ${fmtSize(quota)} (${pct}%)`;
+    if (bar) bar.style.width = pct + '%';
+  }).catch(() => {
+    const el = document.getElementById('storage-browser-line');
+    if (el) el.textContent = 'Browser quota: not available';
+  });
+
   const buttons = document.createElement('div');
   buttons.className = 'rename-buttons';
 
@@ -375,6 +432,7 @@ function showSettingsModal() {
   box.appendChild(desc);
   box.appendChild(select);
   box.appendChild(hint);
+  box.appendChild(storageDiv);
   box.appendChild(buttons);
   overlay.appendChild(box);
   document.body.appendChild(overlay);
@@ -407,7 +465,7 @@ function showExportModal() {
   list.style.marginTop = '10px';
 
   const options = [
-    { icon: '📄', label: 'Markdown (.md)', desc: 'Download the current note as a .md file', action: () => {
+    { label: 'Markdown (.md)', desc: 'Download the current note as a .md file', action: () => {
       const blob = new Blob([state.content], { type: 'text/markdown' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -416,17 +474,13 @@ function showExportModal() {
       a.click();
       URL.revokeObjectURL(url);
     }},
-    { icon: '📦', label: 'JSON', desc: 'Export all notes and images as a .json vault', action: () => exportVault() },
-    { icon: '🖨️', label: 'PDF', desc: 'Open the browser print dialog to save as PDF', action: () => window.print() },
+    { label: 'JSON', desc: 'Export all notes and images as a .json vault', action: () => exportVault() },
+    { label: 'PDF', desc: 'Open the browser print dialog to save as PDF', action: () => window.print() },
   ];
 
   for (const opt of options) {
     const btn = document.createElement('button');
     btn.className = 'export-option';
-
-    const icon = document.createElement('span');
-    icon.className = 'export-option-icon';
-    icon.textContent = opt.icon;
 
     const text = document.createElement('div');
     const lbl = document.createElement('div');
@@ -438,7 +492,6 @@ function showExportModal() {
 
     text.appendChild(lbl);
     text.appendChild(dsc);
-    btn.appendChild(icon);
     btn.appendChild(text);
 
     btn.addEventListener('click', () => { opt.action(); overlay.remove(); });
