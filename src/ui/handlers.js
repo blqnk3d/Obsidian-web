@@ -155,18 +155,80 @@ function handleDrop(e) {
 }
 
 const MIME_EXT = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'image/svg+xml': 'svg', 'image/webp': 'webp', 'image/bmp': 'bmp', 'image/x-icon': 'ico' };
+const MAX_IMG_DIM = 1920;
+const JPEG_QUALITY = 0.7;
 
 function processImageFile(file) {
+  if (file.type === 'image/svg+xml') {
+    const svgReader = new FileReader();
+    svgReader.onload = (e) => {
+      let name = file.name || `pasted-image-${Date.now()}.svg`;
+      storeImage(name, e.target.result);
+      insertAtCursor(`![[${name}]]`);
+    };
+    svgReader.readAsDataURL(file);
+    return;
+  }
+
   const reader = new FileReader();
   reader.onload = async (e) => {
-    const base64 = e.target.result;
+    const dataUrl = e.target.result;
     let name = file.name;
     if (!name || !name.includes('.')) {
       const ext = MIME_EXT[file.type] || 'png';
       name = `pasted-image-${Date.now()}.${ext}`;
     }
-    await storeImage(name, base64);
+
+    const isPng = file.type === 'image/png';
+    const compressed = await compressImage(dataUrl, isPng, name);
+    name = compressed.name;
+
+    await storeImage(name, compressed.dataUrl);
     insertAtCursor(`![[${name}]]`);
   };
+  reader.onerror = () => console.warn('Image read failed');
   reader.readAsDataURL(file);
+}
+
+function compressImage(dataUrl, isPng, origName) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.naturalWidth;
+      let h = img.naturalHeight;
+      let needsResize = w > MAX_IMG_DIM || h > MAX_IMG_DIM;
+
+      if (needsResize) {
+        if (w > h) { h = Math.round(h * MAX_IMG_DIM / w); w = MAX_IMG_DIM; }
+        else { w = Math.round(w * MAX_IMG_DIM / h); h = MAX_IMG_DIM; }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+
+      if (isPng) {
+        if (!needsResize) {
+          resolve({ dataUrl, name: origName });
+          return;
+        }
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve({ dataUrl: canvas.toDataURL('image/png'), name: origName });
+        return;
+      }
+
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, w, h);
+      ctx.drawImage(img, 0, 0, w, h);
+
+      let name = origName;
+      const jpgName = origName.replace(/\.[^.]+$/, '.jpg');
+      if (jpgName !== origName) name = jpgName;
+
+      resolve({ dataUrl: canvas.toDataURL('image/jpeg', JPEG_QUALITY), name });
+    };
+    img.onerror = () => resolve({ dataUrl, name: origName });
+    img.src = dataUrl;
+  });
 }
