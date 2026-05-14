@@ -12,19 +12,18 @@
   <header id="topbar">
     <img id="logo" src="assets/logo.svg" alt="logo">
     <span id="filename" title="Double-click to rename">untitled.md</span>
-    <span id="save-indicator" class="saved">saved</span>
+    <span id="topbar-spacer"></span>
+    <button id="show-sidebar-btn" title="Toggle file tree">&#x2630; Files</button>
     <button id="images-btn">Images</button>
-    <button id="download-md-btn">Download .md</button>
-    <button id="print-btn">Print/PDF</button>
     <button id="export-btn">Export</button>
-    <button id="import-btn">Import</button>
     <button id="settings-btn" title="Settings">&#x2699;</button>
-    <button id="show-sidebar-btn" title="Show file tree" class="hidden">&#x2630; Files</button>
   </header>
   <div id="images-overlay" class="hidden">
     <div id="images-overlay-header">
-      <span>Stored Images</span>
-      <button id="images-overlay-close">&times;</button>
+      <span class="window-title">Stored Images</span>
+      <div class="window-controls">
+        <button id="images-overlay-close">&times;</button>
+      </div>
     </div>
     <div id="images-overlay-list"></div>
   </div>
@@ -38,6 +37,9 @@
         </div>
       </div>
       <div id="file-list"></div>
+      <div id="sidebar-footer">
+        <button id="sidebar-import-btn">Import vault</button>
+      </div>
     </aside>
     <section id="editor-pane">
       <textarea id="editor" spellcheck="false" placeholder="Start writing..."></textarea>

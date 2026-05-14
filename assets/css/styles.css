@@ -84,13 +84,9 @@ html, body {
   flex-shrink: 0;
 }
 
-#save-indicator {
-  font-size: 11px;
-  color: var(--text-muted);
+#topbar-spacer {
+  flex: 1;
 }
-#save-indicator.saved { color: var(--text-muted); }
-#save-indicator.saving { color: var(--accent); }
-#save-indicator.error { color: #f14c4c; }
 
 #topbar button {
   background: var(--bg-surface);
@@ -108,7 +104,6 @@ html, body {
 }
 #export-btn { margin-left: auto; }
 
-#show-sidebar-btn.hidden { display: none; }
 #show-sidebar-btn {
   background: var(--accent);
   color: #fff;
@@ -246,6 +241,28 @@ html, body {
   padding: 1px 4px;
   outline: none;
   border-radius: 2px;
+}
+
+/* ── Sidebar footer ── */
+#sidebar-footer {
+  border-top: 1px solid var(--border);
+  padding: 4px 8px;
+  flex-shrink: 0;
+}
+#sidebar-import-btn {
+  width: 100%;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-family: var(--font-ui);
+  cursor: pointer;
+}
+#sidebar-import-btn:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--accent);
 }
 
 /* ── Editor & Preview Panes ── */
@@ -545,15 +562,15 @@ a[data-wikilink]:hover {
 /* ── Images Overlay ── */
 #images-overlay {
   position: fixed;
-  top: 40px;
+  z-index: 100;
+  top: 44px;
   right: 16px;
   width: 280px;
-  max-height: 400px;
+  max-height: calc(100vh - 60px);
   background: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: 6px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-  z-index: 100;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -562,22 +579,29 @@ a[data-wikilink]:hover {
 
 #images-overlay-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 8px 12px;
+  padding: 6px 10px;
   border-bottom: 1px solid var(--border);
-  font-size: 13px;
-  font-weight: 600;
+  cursor: grab;
+  user-select: none;
+  flex-shrink: 0;
 }
+#images-overlay-header:active { cursor: grabbing; }
+
 #images-overlay-close {
   background: none;
-  border: none;
+  border: 1px solid var(--border);
   color: var(--text-secondary);
-  font-size: 18px;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 8px 2px;
+  border-radius: 3px;
   cursor: pointer;
-  padding: 0 4px;
 }
-#images-overlay-close:hover { color: var(--text-primary); }
+#images-overlay-close:hover {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
 
 #images-overlay-list {
   overflow-y: auto;
@@ -714,4 +738,38 @@ select.rename-input {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239d9d9d' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 8px center;
+}
+
+.export-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-family: var(--font-ui);
+  cursor: pointer;
+  text-align: left;
+  margin-bottom: 6px;
+}
+.export-option:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--accent);
+}
+.export-option-icon {
+  font-size: 18px;
+  width: 28px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.export-option-label {
+  font-weight: 600;
+}
+.export-option-desc {
+  font-size: 11px;
+  color: var(--text-muted);
 }

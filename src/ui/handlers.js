@@ -1,5 +1,5 @@
 import { storeImage, importVault, exportVault, save, deleteImage, renameFile } from '../core/storage.js';
-import { insertAtCursor, getContent } from './editor.js';
+import { insertAtCursor } from './editor.js';
 import { setFilename, state, on, addImage } from '../core/state.js';
 import { getSettings, updateSettings } from '../core/settings.js';
 
@@ -8,66 +8,13 @@ export function initHandlers() {
   document.addEventListener('dragover', (e) => e.preventDefault());
   document.addEventListener('drop', handleDrop);
 
-  document.getElementById('export-btn')?.addEventListener('click', exportVault);
-
-  document.getElementById('import-btn')?.addEventListener('click', () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    input.onchange = (e) => {
-      const file = e.target.files[0];
-      if (file) importVault(file);
-    };
-    input.click();
-  });
-
-  const filenameEl = document.getElementById('filename');
-  filenameEl?.addEventListener('dblclick', () => {
-    filenameEl.contentEditable = 'true';
-    filenameEl.focus();
-    const sel = window.getSelection();
-    sel?.selectAllChildren(filenameEl);
-  });
-  filenameEl?.addEventListener('blur', async () => {
-    filenameEl.contentEditable = 'false';
-    let newName = filenameEl.textContent.trim() || 'untitled.md';
-    if (!newName.includes('.')) newName += '.md';
-    const oldName = state.filename;
-    if (newName !== oldName && state.files.find(f => f.name === newName)) {
-      filenameEl.textContent = oldName;
-      return;
-    }
-    if (newName !== oldName) {
-      await renameFile(oldName, newName);
-      state.fileContents.set(newName, state.content);
-      setFilename(newName);
-    } else {
-      filenameEl.textContent = oldName;
-    }
-  });
-  filenameEl?.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      filenameEl.blur();
-    }
-  });
-
-  document.getElementById('download-md-btn')?.addEventListener('click', () => {
-    const blob = new Blob([getContent()], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = state.filename || 'untitled.md';
-    a.click();
-    URL.revokeObjectURL(url);
-  });
-
-  document.getElementById('print-btn')?.addEventListener('click', () => {
-    window.print();
+  document.getElementById('export-btn')?.addEventListener('click', () => {
+    showExportModal();
   });
 
   const imagesOverlay = document.getElementById('images-overlay');
   const imagesOverlayList = document.getElementById('images-overlay-list');
+  const imagesHeader = document.getElementById('images-overlay-header');
   document.getElementById('images-btn')?.addEventListener('click', () => {
     imagesOverlay?.classList.toggle('hidden');
     if (!imagesOverlay?.classList.contains('hidden')) {
@@ -77,9 +24,8 @@ export function initHandlers() {
   document.getElementById('images-overlay-close')?.addEventListener('click', () => {
     imagesOverlay?.classList.add('hidden');
   });
-  imagesOverlay?.addEventListener('click', (e) => {
-    if (e.target === imagesOverlay) imagesOverlay.classList.add('hidden');
-  });
+
+  initImagesWindowDrag(imagesOverlay, imagesHeader);
 
   on('image-add', () => {
     if (!imagesOverlay?.classList.contains('hidden')) {
@@ -91,8 +37,57 @@ export function initHandlers() {
     showSettingsModal();
   });
 
+  document.getElementById('sidebar-import-btn')?.addEventListener('click', () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (file) importVault(file);
+    };
+    input.click();
+  });
+
   window.addEventListener('pagehide', () => {
     save();
+  });
+}
+
+function initImagesWindowDrag(win, header) {
+  if (!win || !header) return;
+  let dragging = false;
+  let startX, startY, origLeft, origTop;
+
+  header.addEventListener('mousedown', (e) => {
+    if (e.target.closest('.window-controls')) return;
+    dragging = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    origLeft = win.offsetLeft;
+    origTop = win.offsetTop;
+    win.style.left = origLeft + 'px';
+    win.style.right = 'auto';
+    win.style.top = origTop + 'px';
+    win.style.transition = 'none';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    let newLeft = origLeft + dx;
+    let newTop = origTop + dy;
+    newLeft = Math.max(-win.offsetWidth + 60, Math.min(newLeft, window.innerWidth - 60));
+    newTop = Math.max(40, Math.min(newTop, window.innerHeight - 60));
+    win.style.left = newLeft + 'px';
+    win.style.top = newTop + 'px';
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    win.style.transition = '';
   });
 }
 
@@ -388,6 +383,79 @@ function showSettingsModal() {
     updateSettings({ imageNaming: select.value });
     overlay.remove();
   });
+  closeBtn.addEventListener('click', () => overlay.remove());
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) overlay.remove();
+  });
+}
+
+function showExportModal() {
+  const existing = document.querySelector('.rename-overlay');
+  if (existing) return;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'rename-overlay';
+
+  const box = document.createElement('div');
+  box.className = 'rename-box settings-box';
+
+  const label = document.createElement('div');
+  label.className = 'rename-label';
+  label.textContent = 'Export';
+
+  const list = document.createElement('div');
+  list.style.marginTop = '10px';
+
+  const options = [
+    { icon: '📄', label: 'Markdown (.md)', desc: 'Download the current note as a .md file', action: () => {
+      const blob = new Blob([state.content], { type: 'text/markdown' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = state.filename || 'untitled.md';
+      a.click();
+      URL.revokeObjectURL(url);
+    }},
+    { icon: '📦', label: 'JSON', desc: 'Export all notes and images as a .json vault', action: () => exportVault() },
+    { icon: '🖨️', label: 'PDF', desc: 'Open the browser print dialog to save as PDF', action: () => window.print() },
+  ];
+
+  for (const opt of options) {
+    const btn = document.createElement('button');
+    btn.className = 'export-option';
+
+    const icon = document.createElement('span');
+    icon.className = 'export-option-icon';
+    icon.textContent = opt.icon;
+
+    const text = document.createElement('div');
+    const lbl = document.createElement('div');
+    lbl.className = 'export-option-label';
+    lbl.textContent = opt.label;
+    const dsc = document.createElement('div');
+    dsc.className = 'export-option-desc';
+    dsc.textContent = opt.desc;
+
+    text.appendChild(lbl);
+    text.appendChild(dsc);
+    btn.appendChild(icon);
+    btn.appendChild(text);
+
+    btn.addEventListener('click', () => { opt.action(); overlay.remove(); });
+    list.appendChild(btn);
+  }
+
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'rename-btn-secondary';
+  closeBtn.textContent = 'Close';
+  closeBtn.style.marginTop = '4px';
+
+  box.appendChild(label);
+  box.appendChild(list);
+  box.appendChild(closeBtn);
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+
   closeBtn.addEventListener('click', () => overlay.remove());
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) overlay.remove();

@@ -56,7 +56,6 @@ function initSidebarWindow() {
   const stored = localStorage.getItem('sidebar-visible');
   if (stored === 'false') {
     sidebar.classList.add('hidden');
-    showBtn?.classList.remove('hidden');
   }
 
   /* ── Drag by header ── */
@@ -96,22 +95,16 @@ function initSidebarWindow() {
     sidebar.style.transition = '';
   });
 
-  /* ── Hide / Show ── */
-  hideBtn?.addEventListener('click', () => {
-    sidebar.classList.add('hidden');
-    showBtn?.classList.remove('hidden');
-    localStorage.setItem('sidebar-visible', 'false');
+  /* ── Toggle via Files button ── */
+  showBtn?.addEventListener('click', () => {
+    sidebar.classList.toggle('hidden');
+    localStorage.setItem('sidebar-visible', !sidebar.classList.contains('hidden'));
   });
 
-  showBtn?.addEventListener('click', () => {
-    sidebar.classList.remove('hidden');
-    showBtn?.classList.add('hidden');
-    localStorage.setItem('sidebar-visible', 'true');
-
-    if (parseInt(sidebar.style.left) < 40 || !sidebar.style.left) {
-      sidebar.style.left = '';
-      sidebar.style.top = '';
-    }
+  /* ── Hide via ─ button ── */
+  hideBtn?.addEventListener('click', () => {
+    sidebar.classList.add('hidden');
+    localStorage.setItem('sidebar-visible', 'false');
   });
 }
 
