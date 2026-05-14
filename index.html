@@ -18,6 +18,7 @@
     <button id="print-btn">Print/PDF</button>
     <button id="export-btn">Export</button>
     <button id="import-btn">Import</button>
+    <button id="show-sidebar-btn" title="Show file tree" class="hidden">&#x2630; Files</button>
   </header>
   <div id="images-overlay" class="hidden">
     <div id="images-overlay-header">
@@ -27,6 +28,16 @@
     <div id="images-overlay-list"></div>
   </div>
   <main id="split-pane">
+    <aside id="sidebar">
+      <div id="sidebar-header">
+        <span class="window-title">Files</span>
+        <div class="window-controls">
+          <button id="new-note-btn" title="New note">+</button>
+          <button id="sidebar-hide-btn" title="Hide file tree">─</button>
+        </div>
+      </div>
+      <div id="file-list"></div>
+    </aside>
     <section id="editor-pane">
       <textarea id="editor" spellcheck="false" placeholder="Start writing..."></textarea>
     </section>

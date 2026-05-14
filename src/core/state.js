@@ -3,6 +3,8 @@ const listeners = new Map();
 export const state = {
   content: '',
   filename: 'untitled.md',
+  files: [],
+  fileContents: new Map(),
   images: new Map(),
   tags: new Set(),
   wikilinks: new Set(),
@@ -29,6 +31,11 @@ export function setContent(content) {
 export function setFilename(name) {
   state.filename = name;
   emit('filename-change', name);
+}
+
+export function setFileList(files) {
+  state.files = files;
+  emit('file-list-change', files);
 }
 
 export function setSaveStatus(status) {

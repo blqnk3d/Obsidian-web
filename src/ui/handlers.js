@@ -1,4 +1,4 @@
-import { storeImage, importVault, exportVault, save, deleteImage } from '../core/storage.js';
+import { storeImage, importVault, exportVault, save, deleteImage, renameFile } from '../core/storage.js';
 import { insertAtCursor, getContent } from './editor.js';
 import { setFilename, state, on, addImage } from '../core/state.js';
 
@@ -27,14 +27,22 @@ export function initHandlers() {
     const sel = window.getSelection();
     sel?.selectAllChildren(filenameEl);
   });
-  filenameEl?.addEventListener('blur', () => {
+  filenameEl?.addEventListener('blur', async () => {
     filenameEl.contentEditable = 'false';
-    const name = filenameEl.textContent.trim() || 'untitled.md';
-    if (!name.includes('.')) {
-      filenameEl.textContent = name + '.md';
+    let newName = filenameEl.textContent.trim() || 'untitled.md';
+    if (!newName.includes('.')) newName += '.md';
+    const oldName = state.filename;
+    if (newName !== oldName && state.files.find(f => f.name === newName)) {
+      filenameEl.textContent = oldName;
+      return;
     }
-    setFilename(filenameEl.textContent);
-    save();
+    if (newName !== oldName) {
+      await renameFile(oldName, newName);
+      state.fileContents.set(newName, state.content);
+      setFilename(newName);
+    } else {
+      filenameEl.textContent = oldName;
+    }
   });
   filenameEl?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
@@ -76,6 +84,10 @@ export function initHandlers() {
     if (!imagesOverlay?.classList.contains('hidden')) {
       rebuildImagesList(imagesOverlayList);
     }
+  });
+
+  window.addEventListener('pagehide', () => {
+    save();
   });
 }
 
