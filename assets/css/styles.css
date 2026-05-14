@@ -58,6 +58,18 @@ html, body {
 #filename {
   color: var(--text-primary);
   font-family: var(--font-ui);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid transparent;
+}
+#filename:hover {
+  background: var(--bg-surface);
+}
+#filename[contenteditable="true"] {
+  background: var(--bg-tertiary);
+  border-color: var(--accent);
+  outline: none;
 }
 
 #save-indicator {
@@ -68,8 +80,7 @@ html, body {
 #save-indicator.saving { color: var(--accent); }
 #save-indicator.error { color: #f14c4c; }
 
-#export-btn, #import-btn {
-  margin-left: auto;
+#topbar button {
   background: var(--bg-surface);
   color: var(--text-primary);
   border: 1px solid var(--border);
@@ -79,10 +90,11 @@ html, body {
   font-family: var(--font-ui);
   cursor: pointer;
 }
-#export-btn:hover, #import-btn:hover {
+#topbar button:hover {
   background: var(--bg-tertiary);
   border-color: var(--accent);
 }
+#export-btn { margin-left: auto; }
 
 /* ── Split Pane ── */
 #split-pane {
@@ -336,4 +348,29 @@ a[data-wikilink]:hover {
   display: block;
   max-width: 100%;
   margin: 0.5em 0;
+}
+
+/* ── Print ── */
+@media print {
+  #topbar, #editor-pane { display: none; }
+  #preview-pane { flex: 1; max-width: 100%; overflow: visible; }
+  #preview { overflow: visible; }
+  #split-pane { display: block; }
+  body { background: #fff; color: #000; }
+  #preview { color: #000; }
+  #preview a { color: #06c; }
+  #preview code { background: #f5f5f5; }
+  #preview pre { background: #f5f5f5; border-color: #ccc; }
+  #preview blockquote { background: #f9f9f9; border-color: #ccc; }
+  #preview th { background: #f5f5f5; }
+  .callout { background: #f9f9f9; }
+  mark, .highlight { background: #ffd; color: #000; }
+  .tag { background: #eee; color: #555; }
+}
+
+/* ── Missing embed ── */
+.missing-embed {
+  color: var(--text-muted);
+  border-bottom: 1px dashed var(--text-muted);
+  font-style: italic;
 }

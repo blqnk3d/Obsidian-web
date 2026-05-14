@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a1a1a"/>
+      <stop offset="100%" stop-color="#0a0a0a"/>
+    </linearGradient>
+  </defs>
+
+  <!-- App Base -->
+  <rect width="512" height="512" fill="url(#bg)" rx="90"/>
+
+  <!-- Editor Window -->
+  <rect x="72" y="96" width="368" height="320" rx="24" fill="#242424"/>
+
+  <!-- Split Pane Divider -->
+  <line x1="256" y1="96" x2="256" y2="416" stroke="#3a3a3a" stroke-width="2"/>
+
+  <!-- Left Pane: Markdown Editor -->
+  <g fill="#888888">
+    <rect x="100" y="130" width="120" height="12" rx="6"/>
+    <rect x="100" y="190" width="100" height="12" rx="6"/>
+    <rect x="100" y="250" width="60" height="12" rx="6"/>
+    <rect x="100" y="310" width="110" height="12" rx="6"/>
+  </g>
+  <g fill="#555555">
+    <rect x="100" y="160" width="80" height="12" rx="6"/>
+    <rect x="100" y="220" width="90" height="12" rx="6"/>
+    <rect x="100" y="280" width="110" height="12" rx="6"/>
+    <rect x="100" y="340" width="75" height="12" rx="6"/>
+  </g>
+
+  <!-- Right Pane: Live Preview -->
+  <rect x="280" y="130" width="132" height="80" rx="12" fill="#333333"/>
+  <rect x="300" y="155" width="92" height="10" rx="5" fill="#e5e5e5"/>
+  <rect x="300" y="175" width="50" height="8" rx="4" fill="#777777"/>
+
+  <rect x="280" y="230" width="132" height="140" rx="12" fill="#333333"/>
+  <rect x="300" y="260" width="92" height="10" rx="5" fill="#cccccc"/>
+  <rect x="300" y="280" width="70" height="8" rx="4" fill="#666666"/>
+  <rect x="300" y="300" width="100" height="8" rx="4" fill="#666666"/>
+  <rect x="300" y="330" width="40" height="14" rx="7" fill="#444444"/>
+
+  <!-- Geometric Accent (Obsidian Nod) -->
+  <g stroke="#999999" stroke-width="2" stroke-linejoin="round">
+    <polygon points="380,320 420,340 410,390 370,370 360,330" fill="#111111"/>
+    <polygon points="390,335 415,348 408,382 380,365" fill="#444444" stroke="none"/>
+  </g>
+</svg>

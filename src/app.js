@@ -26,6 +26,10 @@ async function init() {
     scheduleRender(content);
     debounceSave();
   });
+
+  on('filename-change', (name) => {
+    document.getElementById('filename').textContent = name;
+  });
 }
 
 function handleEditorChange(content) {

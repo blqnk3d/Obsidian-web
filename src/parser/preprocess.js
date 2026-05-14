@@ -2,8 +2,8 @@ import { getImage } from '../core/state.js';
 
 const HIGHLIGHT_RE = /==([^=]+)==/g;
 const TAG_RE = /(?:^|\s)(#[^\s#!@$%^&*(),.?":{}|<>]+)/g;
-const WIKILINK_RE = /\[\[([^\]]+)\]\]/g;
-const EMBED_IMAGE_RE = /!\[\[([^\]]+\.(?:png|jpg|jpeg|gif|svg|webp|bmp|ico))\]\]/gi;
+const WIKILINK_RE = /(?<!!)\[\[([^\]]+)\]\]/g;
+const EMBED_IMAGE_RE = /!\[\[([^\]]+)\]\]/gi;
 
 function preprocessHighlights(text) {
   return text.replace(HIGHLIGHT_RE, '<mark class="highlight">$1</mark>');
@@ -34,7 +34,7 @@ export function preprocess(text) {
   let result = text;
   result = preprocessHighlights(result);
   result = preprocessTags(result);
-  result = preprocessWikilinks(result);
   result = preprocessImages(result);
+  result = preprocessWikilinks(result);
   return result;
 }
