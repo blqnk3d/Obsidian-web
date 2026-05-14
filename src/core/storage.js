@@ -128,6 +128,11 @@ export function importVault(file) {
   reader.readAsText(file);
 }
 
+export async function deleteImage(name) {
+  state.images.delete(name);
+  await deleteFromDB('images', name);
+}
+
 export function storeImage(name, base64) {
   addImage(name, base64);
   return saveToDB('images', { name, data: base64 }).catch(console.error);

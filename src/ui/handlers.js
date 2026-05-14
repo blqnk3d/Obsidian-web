@@ -1,6 +1,6 @@
-import { storeImage, importVault, exportVault, save } from '../core/storage.js';
+import { storeImage, importVault, exportVault, save, deleteImage } from '../core/storage.js';
 import { insertAtCursor, getContent } from './editor.js';
-import { setFilename, state } from '../core/state.js';
+import { setFilename, state, on, addImage } from '../core/state.js';
 
 export function initHandlers() {
   document.addEventListener('paste', handlePaste);
@@ -56,6 +56,67 @@ export function initHandlers() {
   document.getElementById('print-btn')?.addEventListener('click', () => {
     window.print();
   });
+
+  const imagesOverlay = document.getElementById('images-overlay');
+  const imagesOverlayList = document.getElementById('images-overlay-list');
+  document.getElementById('images-btn')?.addEventListener('click', () => {
+    imagesOverlay?.classList.toggle('hidden');
+    if (!imagesOverlay?.classList.contains('hidden')) {
+      rebuildImagesList(imagesOverlayList);
+    }
+  });
+  document.getElementById('images-overlay-close')?.addEventListener('click', () => {
+    imagesOverlay?.classList.add('hidden');
+  });
+  imagesOverlay?.addEventListener('click', (e) => {
+    if (e.target === imagesOverlay) imagesOverlay.classList.add('hidden');
+  });
+
+  on('image-add', () => {
+    if (!imagesOverlay?.classList.contains('hidden')) {
+      rebuildImagesList(imagesOverlayList);
+    }
+  });
+}
+
+function rebuildImagesList(listEl) {
+  listEl.innerHTML = '';
+  const names = [...state.images.keys()].sort();
+  if (names.length === 0) {
+    listEl.innerHTML = '<div style="padding:12px;color:var(--text-muted);font-size:12px;text-align:center;">No images stored. Paste or drop an image to add it.</div>';
+    return;
+  }
+  for (const name of names) {
+    const data = state.images.get(name);
+    const item = document.createElement('div');
+    item.className = 'image-item';
+    item.title = 'Click to insert ![[' + name + ']]';
+    const img = document.createElement('img');
+    img.src = data;
+    img.alt = name;
+    const label = document.createElement('span');
+    label.className = 'image-name';
+    label.textContent = name;
+    const delBtn = document.createElement('button');
+    delBtn.className = 'image-delete';
+    delBtn.textContent = '\u2716';
+    delBtn.title = 'Delete image';
+    delBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (confirm('Delete "' + name + '"?')) {
+        state.images.delete(name);
+        deleteImage(name);
+        rebuildImagesList(listEl);
+      }
+    });
+    item.appendChild(img);
+    item.appendChild(label);
+    item.appendChild(delBtn);
+    item.addEventListener('click', () => {
+      insertAtCursor('![[' + name + ']]');
+    });
+    listEl.appendChild(item);
+  }
 }
 
 function handlePaste(e) {

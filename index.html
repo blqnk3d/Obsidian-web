@@ -10,13 +10,22 @@
 <body>
 <div id="app">
   <header id="topbar">
+    <img id="logo" src="assets/logo.svg" alt="logo">
     <span id="filename" title="Double-click to rename">untitled.md</span>
     <span id="save-indicator" class="saved">saved</span>
+    <button id="images-btn">Images</button>
     <button id="download-md-btn">Download .md</button>
     <button id="print-btn">Print/PDF</button>
     <button id="export-btn">Export</button>
     <button id="import-btn">Import</button>
   </header>
+  <div id="images-overlay" class="hidden">
+    <div id="images-overlay-header">
+      <span>Stored Images</span>
+      <button id="images-overlay-close">&times;</button>
+    </div>
+    <div id="images-overlay-list"></div>
+  </div>
   <main id="split-pane">
     <section id="editor-pane">
       <textarea id="editor" spellcheck="false" placeholder="Start writing..."></textarea>

@@ -72,6 +72,12 @@ html, body {
   outline: none;
 }
 
+#logo {
+  height: 18px;
+  width: 18px;
+  flex-shrink: 0;
+}
+
 #save-indicator {
   font-size: 11px;
   color: var(--text-muted);
@@ -366,6 +372,87 @@ a[data-wikilink]:hover {
   .callout { background: #f9f9f9; }
   mark, .highlight { background: #ffd; color: #000; }
   .tag { background: #eee; color: #555; }
+}
+
+/* ── Images Overlay ── */
+#images-overlay {
+  position: fixed;
+  top: 40px;
+  right: 16px;
+  width: 280px;
+  max-height: 400px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+#images-overlay.hidden { display: none; }
+
+#images-overlay-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 600;
+}
+#images-overlay-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 4px;
+}
+#images-overlay-close:hover { color: var(--text-primary); }
+
+#images-overlay-list {
+  overflow-y: auto;
+  padding: 8px;
+  flex: 1;
+}
+#images-overlay-list .image-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+#images-overlay-list .image-item:hover {
+  background: var(--bg-surface);
+}
+#images-overlay-list .image-item img {
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: 3px;
+  background: var(--bg-tertiary);
+}
+#images-overlay-list .image-item .image-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+#images-overlay-list .image-item .image-delete {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0 4px;
+}
+#images-overlay-list .image-item .image-delete:hover {
+  color: #f14c4c;
 }
 
 /* ── Missing embed ── */
