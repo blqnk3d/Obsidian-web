@@ -1,6 +1,7 @@
 import { storeImage, importVault, exportVault, save, deleteImage, renameFile } from '../core/storage.js';
 import { insertAtCursor, getContent } from './editor.js';
 import { setFilename, state, on, addImage } from '../core/state.js';
+import { getSettings, updateSettings } from '../core/settings.js';
 
 export function initHandlers() {
   document.addEventListener('paste', handlePaste);
@@ -86,6 +87,10 @@ export function initHandlers() {
     }
   });
 
+  document.getElementById('settings-btn')?.addEventListener('click', () => {
+    showSettingsModal();
+  });
+
   window.addEventListener('pagehide', () => {
     save();
   });
@@ -158,49 +163,95 @@ const MIME_EXT = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 
 const MAX_IMG_DIM = 1920;
 const JPEG_QUALITY = 0.7;
 
-function processImageFile(file) {
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => resolve(e.target.result);
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function processImageFile(file) {
+  const dataUrl = await readFileAsDataUrl(file).catch(() => null);
+  if (!dataUrl) return;
+
   if (file.type === 'image/svg+xml') {
-    const svgReader = new FileReader();
-    svgReader.onload = (e) => {
-      let name = file.name || `pasted-image-${Date.now()}.svg`;
-      storeImage(name, e.target.result);
-      insertAtCursor(`![[${name}]]`);
-    };
-    svgReader.readAsDataURL(file);
+    const name = uniqueName(file.name || `pasted-image-${Date.now()}.svg`);
+    await storeImage(name, dataUrl);
+    insertAtCursor(`![[${name}]]`);
     return;
   }
 
-  const reader = new FileReader();
-  reader.onload = async (e) => {
-    const dataUrl = e.target.result;
-    let name = file.name;
-    if (!name || !name.includes('.')) {
-      const ext = MIME_EXT[file.type] || 'png';
-      name = `pasted-image-${Date.now()}.${ext}`;
-    }
+  const settings = getSettings();
+  const convertToJpeg = file.type !== 'image/png';
+  let name = generateImageName(file, settings);
 
-    const isPng = file.type === 'image/png';
-    const compressed = await compressImage(dataUrl, isPng, name);
-    name = compressed.name;
+  if (settings.imageNaming === 'prompt') {
+    name = await promptImageName(name);
+    if (!name) return;
+  }
 
-    await storeImage(name, compressed.dataUrl);
-    insertAtCursor(`![[${name}]]`);
-  };
-  reader.onerror = () => console.warn('Image read failed');
-  reader.readAsDataURL(file);
+  name = forceExtension(name, convertToJpeg ? '.jpg' : '.png');
+
+  const compressed = await compressImage(dataUrl, convertToJpeg, name);
+  name = uniqueName(compressed.name);
+
+  await storeImage(name, compressed.dataUrl);
+  insertAtCursor(`![[${name}]]`);
 }
 
-function compressImage(dataUrl, isPng, origName) {
+function generateImageName(file, settings) {
+  if (file.name && file.name.includes('.')) {
+    return file.name;
+  }
+
+  const ext = MIME_EXT[file.type] || 'png';
+  const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+
+  switch (settings.imageNaming) {
+    case 'random':
+      return `pasted-image-${Math.random().toString(36).slice(2, 10)}.${ext}`;
+    case 'prompt':
+    case 'date-index':
+    default:
+      return `pasted-image-${ts}.${ext}`;
+  }
+}
+
+function forceExtension(name, ext) {
+  const base = name.includes('.') ? name.replace(/\.[^.]+$/, '') : name;
+  return base + ext;
+}
+
+function uniqueName(name) {
+  if (!state.images.has(name)) return name;
+  const dot = name.lastIndexOf('.');
+  const base = dot >= 0 ? name.slice(0, dot) : name;
+  const ext = dot >= 0 ? name.slice(dot) : '';
+  let idx = 1;
+  while (state.images.has(`${base}_${idx}${ext}`)) {
+    idx++;
+  }
+  return `${base}_${idx}${ext}`;
+}
+
+function compressImage(dataUrl, convertToJpeg, name) {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
       let w = img.naturalWidth;
       let h = img.naturalHeight;
-      let needsResize = w > MAX_IMG_DIM || h > MAX_IMG_DIM;
+      const needsResize = w > MAX_IMG_DIM || h > MAX_IMG_DIM;
 
       if (needsResize) {
         if (w > h) { h = Math.round(h * MAX_IMG_DIM / w); w = MAX_IMG_DIM; }
         else { w = Math.round(w * MAX_IMG_DIM / h); h = MAX_IMG_DIM; }
+      }
+
+      if (!convertToJpeg && !needsResize) {
+        resolve({ dataUrl, name });
+        return;
       }
 
       const canvas = document.createElement('canvas');
@@ -208,27 +259,137 @@ function compressImage(dataUrl, isPng, origName) {
       canvas.height = h;
       const ctx = canvas.getContext('2d');
 
-      if (isPng) {
-        if (!needsResize) {
-          resolve({ dataUrl, name: origName });
-          return;
-        }
-        ctx.drawImage(img, 0, 0, w, h);
-        resolve({ dataUrl: canvas.toDataURL('image/png'), name: origName });
-        return;
+      if (convertToJpeg) {
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, w, h);
       }
 
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(0, 0, w, h);
       ctx.drawImage(img, 0, 0, w, h);
 
-      let name = origName;
-      const jpgName = origName.replace(/\.[^.]+$/, '.jpg');
-      if (jpgName !== origName) name = jpgName;
-
-      resolve({ dataUrl: canvas.toDataURL('image/jpeg', JPEG_QUALITY), name });
+      if (convertToJpeg) {
+        resolve({ dataUrl: canvas.toDataURL('image/jpeg', JPEG_QUALITY), name: forceExtension(name, '.jpg') });
+      } else {
+        resolve({ dataUrl: canvas.toDataURL('image/png'), name });
+      }
     };
-    img.onerror = () => resolve({ dataUrl, name: origName });
+    img.onerror = () => resolve({ dataUrl, name });
     img.src = dataUrl;
+  });
+}
+
+function promptImageName(defaultName) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'rename-overlay';
+
+    const box = document.createElement('div');
+    box.className = 'rename-box';
+
+    const label = document.createElement('div');
+    label.className = 'rename-label';
+    label.textContent = 'Name your image';
+
+    const input = document.createElement('input');
+    input.className = 'rename-input';
+    input.type = 'text';
+    input.value = defaultName;
+    input.spellcheck = false;
+
+    const buttons = document.createElement('div');
+    buttons.className = 'rename-buttons';
+
+    const saveBtn = document.createElement('button');
+    saveBtn.className = 'rename-btn-primary';
+    saveBtn.textContent = 'Save';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'rename-btn-secondary';
+    cancelBtn.textContent = 'Cancel';
+
+    buttons.appendChild(saveBtn);
+    buttons.appendChild(cancelBtn);
+    box.appendChild(label);
+    box.appendChild(input);
+    box.appendChild(buttons);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+
+    input.focus();
+    input.select();
+
+    const cleanup = (result) => { overlay.remove(); resolve(result); };
+
+    saveBtn.addEventListener('click', () => {
+      const val = input.value.trim();
+      cleanup(val || defaultName);
+    });
+    cancelBtn.addEventListener('click', () => cleanup(null));
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); saveBtn.click(); }
+      if (e.key === 'Escape') cancelBtn.click();
+    });
+  });
+}
+
+function showSettingsModal() {
+  const existing = document.querySelector('.rename-overlay');
+  if (existing) return;
+
+  const settings = getSettings();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'rename-overlay';
+
+  const box = document.createElement('div');
+  box.className = 'rename-box settings-box';
+
+  const label = document.createElement('div');
+  label.className = 'rename-label';
+  label.textContent = 'Image Naming';
+
+  const desc = document.createElement('div');
+  desc.style.cssText = 'font-size:12px;color:var(--text-muted);margin-bottom:12px;';
+  desc.textContent = 'How should pasted / dropped images be named?';
+
+  const select = document.createElement('select');
+  select.className = 'rename-input';
+  select.innerHTML = `
+    <option value="date-index" ${settings.imageNaming === 'date-index' ? 'selected' : ''}>Date + time (e.g. pasted-image-2026-05-14-123045.png)</option>
+    <option value="random" ${settings.imageNaming === 'random' ? 'selected' : ''}>Random suffix (e.g. pasted-image-a7f3b2c9.png)</option>
+    <option value="prompt" ${settings.imageNaming === 'prompt' ? 'selected' : ''}>Prompt each time</option>
+  `;
+
+  const hint = document.createElement('div');
+  hint.style.cssText = 'font-size:11px;color:var(--text-muted);margin-top:6px;';
+  hint.textContent = 'Note: when dragging a file with a name, the original name is kept. Other rules apply to clipboard pastes.';
+
+  const buttons = document.createElement('div');
+  buttons.className = 'rename-buttons';
+
+  const saveBtn = document.createElement('button');
+  saveBtn.className = 'rename-btn-primary';
+  saveBtn.textContent = 'Save';
+
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'rename-btn-secondary';
+  closeBtn.textContent = 'Close';
+
+  buttons.appendChild(saveBtn);
+  buttons.appendChild(closeBtn);
+  box.appendChild(label);
+  box.appendChild(desc);
+  box.appendChild(select);
+  box.appendChild(hint);
+  box.appendChild(buttons);
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+
+  saveBtn.addEventListener('click', () => {
+    updateSettings({ imageNaming: select.value });
+    overlay.remove();
+  });
+  closeBtn.addEventListener('click', () => overlay.remove());
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) overlay.remove();
   });
 }
