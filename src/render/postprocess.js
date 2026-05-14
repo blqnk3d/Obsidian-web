@@ -66,37 +66,47 @@ async function renderLatex(container) {
     }
   }
 
+  // Display math: $$...$$ — process at innerHTML level to
+  // reconstruct math that was split across <br> by breaks:true
+  const blocks = container.querySelectorAll('p, div:not(.katex-display), li, td, th, blockquote, .callout-body');
+  for (const block of blocks) {
+    if (block.closest('pre, code, .katex, .katex-display')) continue;
+    if (!block.textContent || !block.textContent.includes('$$')) continue;
+
+    block.innerHTML = block.innerHTML.replace(
+      /\$\$([\s\S]*?)\$\$/g,
+      (match, inner) => {
+        const math = inner.replace(/<br\s*\/?>/gi, '\n').trim();
+        if (!math) return match;
+        try {
+          return katex.renderToString(math, { displayMode: true, throwOnError: false });
+        } catch {
+          return match;
+        }
+      }
+    );
+  }
+
+  // Inline math: $...$ — process text nodes, skip KaTeX-rendered areas
   const textNodes = [];
-  collectTextNodes(container, textNodes);
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, {
+    acceptNode(node) {
+      if (node.parentNode.closest?.('.katex, .katex-display, pre, code, script, style')) {
+        return NodeFilter.FILTER_REJECT;
+      }
+      return NodeFilter.FILTER_ACCEPT;
+    }
+  }, false);
+  let n;
+  while ((n = walker.nextNode()) !== null) {
+    textNodes.push(n);
+  }
 
   for (const node of textNodes) {
     const text = node.nodeValue;
     if (!text || !text.includes('$')) continue;
 
-    if (text.match(/\$\$/)) {
-      const parts = text.split(/(\$\$[\s\S]+?\$\$)/);
-      const fragment = document.createDocumentFragment();
-      let replaced = false;
-      for (const part of parts) {
-        const m = part.match(/^\$\$([\s\S]+?)\$\$$/);
-        if (m) {
-          try {
-            const html = katex.renderToString(m[1], { displayMode: true, throwOnError: false });
-            const span = document.createElement('span');
-            span.innerHTML = html;
-            fragment.appendChild(span);
-            replaced = true;
-          } catch (e) {
-            fragment.appendChild(document.createTextNode(part));
-          }
-        } else {
-          fragment.appendChild(document.createTextNode(part));
-        }
-      }
-      if (replaced) {
-        node.parentNode.replaceChild(fragment, node);
-      }
-    } else if (text.match(/\$[^$]/)) {
+    if (text.match(/\$[^$]/)) {
       const parts = text.split(/(\$[^$]+?\$)/);
       const fragment = document.createDocumentFragment();
       let replaced = false;
@@ -109,7 +119,7 @@ async function renderLatex(container) {
             span.innerHTML = html;
             fragment.appendChild(span);
             replaced = true;
-          } catch (e) {
+          } catch {
             fragment.appendChild(document.createTextNode(part));
           }
         } else {
@@ -120,14 +130,6 @@ async function renderLatex(container) {
         node.parentNode.replaceChild(fragment, node);
       }
     }
-  }
-}
-
-function collectTextNodes(root, result) {
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
-  let node;
-  while ((node = walker.nextNode()) !== null) {
-    result.push(node);
   }
 }
 
