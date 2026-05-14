@@ -7,16 +7,61 @@ export async function postprocess(container) {
     });
   });
 
+  renderCallouts(container);
   await renderLatex(container);
   await renderMermaid(container);
+}
+
+function renderCallouts(container) {
+  container.querySelectorAll('span.callout-marker').forEach(span => {
+    const type = span.getAttribute('data-callout-type');
+    const title = span.getAttribute('data-callout-title') || type;
+    const blockquote = span.closest('blockquote');
+    if (!blockquote) {
+      span.remove();
+      return;
+    }
+
+    const calloutDiv = document.createElement('div');
+    calloutDiv.className = `callout callout-${type}`;
+
+    const header = document.createElement('div');
+    header.className = 'callout-header';
+    header.textContent = title;
+    calloutDiv.appendChild(header);
+
+    const body = document.createElement('div');
+    body.className = 'callout-body';
+
+    const parentP = span.parentNode;
+    span.remove();
+
+    if (parentP && parentP.tagName === 'P') {
+      while (parentP.firstChild && parentP.firstChild.tagName === 'BR') {
+        parentP.removeChild(parentP.firstChild);
+      }
+      if (parentP.textContent.trim() === '' && parentP.children.length === 0) {
+        parentP.remove();
+      }
+    }
+
+    while (blockquote.firstChild) {
+      body.appendChild(blockquote.firstChild);
+    }
+
+    calloutDiv.appendChild(body);
+    blockquote.parentNode.replaceChild(calloutDiv, blockquote);
+  });
 }
 
 let katex = null;
 async function renderLatex(container) {
   if (!katex) {
     try {
-      katex = await import('katex');
-    } catch {
+      const mod = await import('katex');
+      katex = mod.default || mod;
+    } catch (e) {
+      console.error('KaTeX load failed:', e);
       return;
     }
   }

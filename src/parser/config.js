@@ -1,6 +1,5 @@
 import MarkdownIt from 'markdown-it';
 import { preprocess } from './preprocess.js';
-import { calloutsPlugin } from './plugins/callouts.js';
 
 let md = null;
 
@@ -12,8 +11,6 @@ export function initParser() {
     linkify: true,
     typographer: true,
   });
-
-  md.use(calloutsPlugin);
 }
 
 export function parse(text) {

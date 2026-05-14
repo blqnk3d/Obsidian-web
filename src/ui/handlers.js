@@ -103,11 +103,9 @@ function rebuildImagesList(listEl) {
     delBtn.title = 'Delete image';
     delBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (confirm('Delete "' + name + '"?')) {
-        state.images.delete(name);
-        deleteImage(name);
-        rebuildImagesList(listEl);
-      }
+      state.images.delete(name);
+      deleteImage(name);
+      rebuildImagesList(listEl);
     });
     item.appendChild(img);
     item.appendChild(label);

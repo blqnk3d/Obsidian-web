@@ -358,12 +358,13 @@ a[data-wikilink]:hover {
 
 /* ── Print ── */
 @media print {
+  html, body { overflow: visible; height: auto; }
+  #app { height: auto; display: block; }
   #topbar, #editor-pane { display: none; }
-  #preview-pane { flex: 1; max-width: 100%; overflow: visible; }
-  #preview { overflow: visible; }
-  #split-pane { display: block; }
+  #preview-pane { flex: none; max-width: 100%; overflow: visible; display: block; height: auto; }
+  #preview { overflow: visible; height: auto; color: #000; }
+  #split-pane { display: block; height: auto; }
   body { background: #fff; color: #000; }
-  #preview { color: #000; }
   #preview a { color: #06c; }
   #preview code { background: #f5f5f5; }
   #preview pre { background: #f5f5f5; border-color: #ccc; }
@@ -454,6 +455,9 @@ a[data-wikilink]:hover {
 #images-overlay-list .image-item .image-delete:hover {
   color: #f14c4c;
 }
+
+/* ── Callout marker (hidden span injected by preprocessor) ── */
+.callout-marker { display: none; }
 
 /* ── Missing embed ── */
 .missing-embed {

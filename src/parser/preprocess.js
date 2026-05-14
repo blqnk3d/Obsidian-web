@@ -4,6 +4,11 @@ const HIGHLIGHT_RE = /==([^=]+)==/g;
 const TAG_RE = /(?:^|\s)(#[^\s#!@$%^&*(),.?":{}|<>]+)/g;
 const WIKILINK_RE = /(?<!!)\[\[([^\]]+)\]\]/g;
 const EMBED_IMAGE_RE = /!\[\[([^\]]+)\]\]/gi;
+const CALLOUT_LINE_RE = /^>\s*\[!(\w+)\]\s*(.*)$/;
+
+function escapeAttr(str) {
+  return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
 
 function preprocessHighlights(text) {
   return text.replace(HIGHLIGHT_RE, '<mark class="highlight">$1</mark>');
@@ -30,11 +35,50 @@ function preprocessImages(text) {
   });
 }
 
+function preprocessCallouts(text) {
+  const lines = text.split('\n');
+  const result = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+    const match = line.match(CALLOUT_LINE_RE);
+
+    if (match) {
+      const type = match[1].toLowerCase();
+      const rawTitle = match[2] || type;
+      const title = escapeAttr(rawTitle);
+
+      result.push(`> <span class="callout-marker" data-callout-type="${type}" data-callout-title="${title}"></span>`);
+      i++;
+
+      while (i < lines.length) {
+        const next = lines[i];
+        if (next.startsWith('> ')) {
+          result.push(next);
+          i++;
+        } else if (next === '>') {
+          result.push('');
+          i++;
+        } else {
+          break;
+        }
+      }
+    } else {
+      result.push(line);
+      i++;
+    }
+  }
+
+  return result.join('\n');
+}
+
 export function preprocess(text) {
   let result = text;
   result = preprocessHighlights(result);
   result = preprocessTags(result);
   result = preprocessImages(result);
+  result = preprocessCallouts(result);
   result = preprocessWikilinks(result);
   return result;
 }

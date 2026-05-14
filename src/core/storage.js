@@ -56,6 +56,7 @@ async function deleteFromDB(store, id) {
 export async function save() {
   setSaveStatus('saving');
   try {
+    cleanupUnusedImages();
     const data = {
       id: 'note',
       filename: state.filename,
@@ -70,6 +71,21 @@ export async function save() {
   } catch (e) {
     setSaveStatus('error');
     console.error('Save failed:', e);
+  }
+}
+
+function cleanupUnusedImages() {
+  const refs = new Set();
+  const refRe = /!\[\[([^\]]+)\]\]/g;
+  let m;
+  while ((m = refRe.exec(state.content)) !== null) {
+    refs.add(m[1].trim());
+  }
+  for (const name of state.images.keys()) {
+    if (!refs.has(name)) {
+      state.images.delete(name);
+      deleteFromDB('images', name).catch(() => {});
+    }
   }
 }
 
