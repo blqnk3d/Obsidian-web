@@ -34,3 +34,13 @@ export function insertAtCursor(text) {
 export function focus() {
   textarea?.focus();
 }
+
+export function searchAndJump(query) {
+  if (!textarea || !query) return;
+  const idx = textarea.value.indexOf(query);
+  if (idx === -1) return false;
+  textarea.focus();
+  textarea.setSelectionRange(idx, idx + query.length);
+  textarea.scrollTop = (idx / textarea.value.length) * textarea.scrollHeight;
+  return true;
+}
