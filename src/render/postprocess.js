@@ -1,9 +1,36 @@
+import { searchAndJump } from '../ui/editor.js';
+
+function scrollToTarget(target) {
+  const preview = document.getElementById('preview');
+  if (!preview) return;
+
+  const candidates = preview.querySelectorAll('h1, h2, h3, h4, h5, h6, p, li, th, td, blockquote');
+  for (const el of candidates) {
+    if (el.textContent.trim().toLowerCase() === target.trim().toLowerCase()) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.style.outline = '2px solid var(--accent)';
+      setTimeout(() => el.style.outline = '', 1500);
+      return;
+    }
+  }
+  for (const el of candidates) {
+    const text = el.textContent.trim().toLowerCase();
+    if (text.includes(target.trim().toLowerCase())) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.style.outline = '2px solid var(--accent)';
+      setTimeout(() => el.style.outline = '', 1500);
+      return;
+    }
+  }
+}
+
 export async function postprocess(container) {
   container.querySelectorAll('a[data-wikilink]').forEach(el => {
     el.addEventListener('click', (e) => {
       e.preventDefault();
       const target = el.getAttribute('data-wikilink');
-      console.log(`[wikilink] navigated to: ${target}`);
+      searchAndJump(`[[${target}]]`);
+      scrollToTarget(target);
     });
   });
 

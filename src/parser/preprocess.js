@@ -26,10 +26,21 @@ function preprocessWikilinks(text) {
 }
 
 function preprocessImages(text) {
-  return text.replace(EMBED_IMAGE_RE, (match, name) => {
+  return text.replace(EMBED_IMAGE_RE, (match, inner) => {
+    const parts = inner.split('|');
+    const name = parts[0];
+    const dims = parts[1] || '';
     const data = getImage(name);
     if (data) {
-      return `<img src="${data}" alt="${name}" class="embed-image">`;
+      let dimAttrs = '';
+      if (dims.includes('x')) {
+        const [w, h] = dims.split('x');
+        if (w) dimAttrs += ` width="${w}"`;
+        if (h) dimAttrs += ` height="${h}"`;
+      } else if (dims) {
+        dimAttrs = ` width="${dims}"`;
+      }
+      return `<img src="${data}" alt="${name}" class="embed-image"${dimAttrs}>`;
     }
     return `<span class="missing-embed" title="Image not found: ${name}">${match}</span>`;
   });
