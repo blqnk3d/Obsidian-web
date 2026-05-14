@@ -3,8 +3,10 @@ import { state, setContent, setFilename, setSaveStatus, addImage, getExportData,
 const DB_NAME = 'static-obsidian';
 const DB_VERSION = 1;
 const STORE_NAME = 'vault';
+const IMAGE_GRACE_MS = 60000;
 
 let db = null;
+const pendingDeletions = new Map();
 
 function openDB() {
   return new Promise((resolve, reject) => {
@@ -79,12 +81,23 @@ function cleanupUnusedImages() {
   const refRe = /!\[\[([^\]]+)\]\]/g;
   let m;
   while ((m = refRe.exec(state.content)) !== null) {
-    refs.add(m[1].trim());
+    const inner = m[1].trim();
+    const name = inner.split('|')[0];
+    refs.add(name);
+    pendingDeletions.delete(name);
   }
+
+  const now = Date.now();
   for (const name of state.images.keys()) {
-    if (!refs.has(name)) {
-      state.images.delete(name);
-      deleteFromDB('images', name).catch(() => {});
+    if (refs.has(name)) continue;
+    if (pendingDeletions.has(name)) {
+      if (now - pendingDeletions.get(name) >= IMAGE_GRACE_MS) {
+        state.images.delete(name);
+        deleteFromDB('images', name).catch(() => {});
+        pendingDeletions.delete(name);
+      }
+    } else {
+      pendingDeletions.set(name, now);
     }
   }
 }
