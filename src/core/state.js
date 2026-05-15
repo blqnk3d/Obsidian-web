@@ -85,3 +85,7 @@ export function loadImportData(data) {
   state.metadata = data.metadata || { updated_at: null };
   emit('import', data);
 }
+
+export function sortFilesByUpdatedAt(files) {
+  return [...files].sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || ''));
+}

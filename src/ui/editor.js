@@ -1,14 +1,29 @@
 const CURSOR = '{cursor}';
 
+export const SNIPPET_TEMPLATES = {
+  'code': '```\n{cursor}\n```',
+  'code-js': '```javascript\n{cursor}\n```',
+  'code-py': '```python\n{cursor}\n```',
+  'code-bash': '```bash\n{cursor}\n```',
+  'code-html': '```html\n{cursor}\n```',
+  'callout': '> [!NOTE]\n> {cursor}',
+  'mermaid': '```mermaid\n{cursor}\n```',
+  'latex': '$$\n{cursor}\n$$',
+  'img': '![[{cursor}]]',
+  'img-embed': '![[{cursor}]]',
+  'link': '[{cursor}](url)',
+  'todo': '- [ ] {cursor}',
+};
+
 const TAB_SNIPPETS = {
   table: () => insertTable(4, 4),
-  code: () => insertTemplate('```\n{cursor}\n```'),
-  callout: () => insertTemplate('> [!NOTE]\n> {cursor}'),
-  mermaid: () => insertTemplate('```mermaid\n{cursor}\n```'),
-  img: () => insertTemplate('![[{cursor}]]'),
-  link: () => insertTemplate('[{cursor}](url)'),
-  todo: () => insertTemplate('- [ ] {cursor}'),
-  latex: () => insertTemplate('$$\n{cursor}\n$$'),
+  code: () => insertTemplate(SNIPPET_TEMPLATES['code']),
+  callout: () => insertTemplate(SNIPPET_TEMPLATES['callout']),
+  mermaid: () => insertTemplate(SNIPPET_TEMPLATES['mermaid']),
+  img: () => insertTemplate(SNIPPET_TEMPLATES['img']),
+  link: () => insertTemplate(SNIPPET_TEMPLATES['link']),
+  todo: () => insertTemplate(SNIPPET_TEMPLATES['todo']),
+  latex: () => insertTemplate(SNIPPET_TEMPLATES['latex']),
 };
 
 let textarea = null;

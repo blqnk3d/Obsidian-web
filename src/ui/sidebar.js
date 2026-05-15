@@ -1,4 +1,4 @@
-import { state, on, setFilename, setContent, emit } from '../core/state.js';
+import { state, on, setFilename, setContent, emit, sortFilesByUpdatedAt } from '../core/state.js';
 import { saveFile, loadFile, deleteFile, renameFile, save, nextUntitledName } from '../core/storage.js';
 import { setContent as setEditorContent, focus } from './editor.js';
 import { scheduleRender } from '../render/preview.js';
@@ -24,7 +24,7 @@ function renderFileList(files) {
   if (!fileListEl) return;
   fileListEl.innerHTML = '';
 
-  const sorted = [...files].sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || ''));
+  const sorted = sortFilesByUpdatedAt(files);
 
   for (const file of sorted) {
     const item = document.createElement('div');
@@ -144,7 +144,7 @@ async function deleteFileHandler(name) {
   state.fileContents.delete(name);
 
   if (name === state.filename) {
-    const remaining = [...state.files].sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || ''));
+    const remaining = sortFilesByUpdatedAt(state.files);
     const next = remaining[0];
     if (next) {
       const content = state.fileContents.get(next.name) || '';

@@ -25,7 +25,7 @@ export function render(content) {
       'ul','ol','li','dl','dt','dd',
       'table','thead','tbody','tr','th','td',
       'blockquote','pre','code','span','div',
-      'a','img','strong','em','del','ins','sub','sup',
+      'a','img','strong','em','s','del','ins','sub','sup',
       'mark','abbr','address','input',
     ],
     ALLOWED_ATTR: [

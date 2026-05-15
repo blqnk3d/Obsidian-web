@@ -1,4 +1,4 @@
-import { state, setContent, setFilename, setFileList, setSaveStatus, addImage, getExportData, loadImportData } from './state.js';
+import { state, setContent, setFilename, setFileList, setSaveStatus, addImage, getExportData, loadImportData, sortFilesByUpdatedAt } from './state.js';
 
 const DB_NAME = 'static-obsidian';
 const DB_VERSION = 2;
@@ -177,7 +177,7 @@ export async function load() {
 
     setFileList(state.files);
 
-    const sorted = [...state.files].sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || ''));
+    const sorted = sortFilesByUpdatedAt(state.files);
     const latest = sorted[0];
 
     if (latest) {

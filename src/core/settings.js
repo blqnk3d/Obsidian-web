@@ -1,4 +1,4 @@
-const SETTINGS_KEY = 'obsidian-web-settings';
+export const SETTINGS_KEY = 'obsidian-web-settings';
 
 const DEFAULTS = {
   imageNaming: 'date-index',

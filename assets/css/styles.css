@@ -615,7 +615,7 @@ a[data-wikilink]:hover {
 @media print {
   html, body { overflow: visible; height: auto; }
   #app { height: auto; display: block; }
-  #topbar, #sidebar, #show-sidebar-btn { display: none; }
+  #topbar, #sidebar, #show-sidebar-btn, .rename-overlay { display: none; }
   #editor-pane { display: none; }
   #preview-pane { flex: none; max-width: 100%; overflow: visible; display: block; height: auto; }
   #preview { overflow: visible; height: auto; color: #000; padding: 0; line-height: 1.4; font-size: 12px; }

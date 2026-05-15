@@ -1,8 +1,10 @@
 import { storeImage, importVault, exportVault, save, deleteImage, renameFile, clearStore, nextUntitledName, saveFile } from '../core/storage.js';
-import { insertAtCursor, setContent as setEditorContent, wrapSelection, insertLinePrefix, insertTemplate, insertTable } from './editor.js';
+import { insertAtCursor, setContent as setEditorContent, wrapSelection, insertLinePrefix, insertTemplate, insertTable, SNIPPET_TEMPLATES } from './editor.js';
 import { scheduleRender } from '../render/preview.js';
 import { setFilename, setContent, state, on, addImage } from '../core/state.js';
-import { getSettings, updateSettings } from '../core/settings.js';
+import { getSettings, updateSettings, SETTINGS_KEY } from '../core/settings.js';
+import { makeDraggable } from './drag.js';
+import { createPromptModal } from './modal.js';
 
 export function initHandlers() {
   document.addEventListener('paste', handlePaste);
@@ -31,7 +33,7 @@ export function initHandlers() {
     imagesOverlay?.classList.add('hidden');
   });
 
-  initImagesWindowDrag(imagesOverlay, imagesHeader);
+  makeDraggable(imagesOverlay, imagesHeader);
 
   on('image-add', () => {
     if (!imagesOverlay?.classList.contains('hidden')) {
@@ -59,44 +61,6 @@ export function initHandlers() {
   });
 
   initToolbar();
-}
-
-function initImagesWindowDrag(win, header) {
-  if (!win || !header) return;
-  let dragging = false;
-  let startX, startY, origLeft, origTop;
-
-  header.addEventListener('mousedown', (e) => {
-    if (e.target.closest('.window-controls')) return;
-    dragging = true;
-    startX = e.clientX;
-    startY = e.clientY;
-    origLeft = win.offsetLeft;
-    origTop = win.offsetTop;
-    win.style.left = origLeft + 'px';
-    win.style.right = 'auto';
-    win.style.top = origTop + 'px';
-    win.style.transition = 'none';
-    e.preventDefault();
-  });
-
-  document.addEventListener('mousemove', (e) => {
-    if (!dragging) return;
-    const dx = e.clientX - startX;
-    const dy = e.clientY - startY;
-    let newLeft = origLeft + dx;
-    let newTop = origTop + dy;
-    newLeft = Math.max(-win.offsetWidth + 60, Math.min(newLeft, window.innerWidth - 60));
-    newTop = Math.max(40, Math.min(newTop, window.innerHeight - 60));
-    win.style.left = newLeft + 'px';
-    win.style.top = newTop + 'px';
-  });
-
-  document.addEventListener('mouseup', () => {
-    if (!dragging) return;
-    dragging = false;
-    win.style.transition = '';
-  });
 }
 
 function rebuildImagesList(listEl) {
@@ -283,54 +247,11 @@ function compressImage(dataUrl, convertToJpeg, name) {
 
 function promptImageName(defaultName) {
   return new Promise((resolve) => {
-    const overlay = document.createElement('div');
-    overlay.className = 'rename-overlay';
-
-    const box = document.createElement('div');
-    box.className = 'rename-box';
-
-    const label = document.createElement('div');
-    label.className = 'rename-label';
-    label.textContent = 'Name your image';
-
-    const input = document.createElement('input');
-    input.className = 'rename-input';
-    input.type = 'text';
-    input.value = defaultName;
-    input.spellcheck = false;
-
-    const buttons = document.createElement('div');
-    buttons.className = 'rename-buttons';
-
-    const saveBtn = document.createElement('button');
-    saveBtn.className = 'rename-btn-primary';
-    saveBtn.textContent = 'Save';
-
-    const cancelBtn = document.createElement('button');
-    cancelBtn.className = 'rename-btn-secondary';
-    cancelBtn.textContent = 'Cancel';
-
-    buttons.appendChild(saveBtn);
-    buttons.appendChild(cancelBtn);
-    box.appendChild(label);
-    box.appendChild(input);
-    box.appendChild(buttons);
-    overlay.appendChild(box);
-    document.body.appendChild(overlay);
-
-    input.focus();
-    input.select();
-
-    const cleanup = (result) => { overlay.remove(); resolve(result); };
-
-    saveBtn.addEventListener('click', () => {
-      const val = input.value.trim();
-      cleanup(val || defaultName);
-    });
-    cancelBtn.addEventListener('click', () => cleanup(null));
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); saveBtn.click(); }
-      if (e.key === 'Escape') cancelBtn.click();
+    createPromptModal({
+      labelText: 'Name your image',
+      inputValue: defaultName,
+      onConfirm: (val) => resolve(val || defaultName),
+      onCancel: () => resolve(null),
     });
   });
 }
@@ -430,7 +351,7 @@ function showSettingsModal() {
     await clearStore('images');
     state.fileContents.clear();
     state.files = [];
-    localStorage.removeItem('obsidian-settings');
+    localStorage.removeItem(SETTINGS_KEY);
     const name = nextUntitledName();
     state.fileContents.set(name, '');
     state.files.push({ name, updated_at: new Date().toISOString() });
@@ -503,7 +424,9 @@ function showExportModal() {
       URL.revokeObjectURL(url);
     }},
     { label: 'JSON', desc: 'Export all notes and images as a .json vault', action: () => exportVault() },
-    { label: 'PDF', desc: 'Open the browser print dialog to save as PDF', action: () => window.print() },
+    { label: 'PDF', desc: 'Open the browser print dialog to save as PDF', action: () => {
+      setTimeout(() => window.print(), 0);
+    }},
   ];
 
   for (const opt of options) {
@@ -586,22 +509,10 @@ function initToolbar() {
     });
   });
 
-  const SNIPPET_TEMPLATES = {
-    'code-js': () => insertTemplate('```javascript\n{cursor}\n```'),
-    'code-py': () => insertTemplate('```python\n{cursor}\n```'),
-    'code-bash': () => insertTemplate('```bash\n{cursor}\n```'),
-    'code-html': () => insertTemplate('```html\n{cursor}\n```'),
-    'mermaid': () => insertTemplate('```mermaid\n{cursor}\n```'),
-    'latex': () => insertTemplate('$$\n{cursor}\n$$'),
-    'img-embed': () => insertTemplate('![[{cursor}]]'),
-    'link': () => insertTemplate('[{cursor}](url)'),
-    'todo': () => insertTemplate('- [ ] {cursor}'),
-  };
-
   document.querySelectorAll('[data-tb="snippets"] + .tb-dropdown button').forEach((btn) => {
     btn.addEventListener('click', () => {
-      const fn = SNIPPET_TEMPLATES[btn.dataset.snippet];
-      if (fn) fn();
+      const template = SNIPPET_TEMPLATES[btn.dataset.snippet];
+      if (template) insertTemplate(template);
     });
   });
 
