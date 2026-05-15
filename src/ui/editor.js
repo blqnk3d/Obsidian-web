@@ -30,21 +30,75 @@ const TAB_SNIPPETS = {
 let textarea = null;
 let changeCallback = null;
 
+/* ── Undo / Redo history ── */
+const MAX_HISTORY = 200;
+let history = [];
+let historyIndex = -1;
+let historyTimer = null;
+
+function pushHistory(value) {
+  if (history[historyIndex] === value) return;
+  history = history.slice(0, historyIndex + 1);
+  history.push(value);
+  if (history.length > MAX_HISTORY) history.shift();
+  historyIndex = history.length - 1;
+}
+
+function flushHistory() {
+  if (historyTimer) {
+    clearTimeout(historyTimer);
+    historyTimer = null;
+    if (textarea) pushHistory(textarea.value);
+  }
+}
+
+function restoreSnapshot(value) {
+  textarea.value = value;
+  textarea.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+export function undo() {
+  if (!textarea || historyIndex <= 0) return;
+  flushHistory();
+  historyIndex--;
+  restoreSnapshot(history[historyIndex]);
+}
+
+export function redo() {
+  if (!textarea || historyIndex >= history.length - 1) return;
+  flushHistory();
+  historyIndex++;
+  restoreSnapshot(history[historyIndex]);
+}
+
 export function initEditor(el, onChange) {
   textarea = el;
   changeCallback = onChange;
+  history = [''];
+  historyIndex = 0;
 
   textarea.addEventListener('input', () => {
     if (changeCallback) changeCallback(textarea.value);
+    if (historyTimer) clearTimeout(historyTimer);
+    historyTimer = setTimeout(() => {
+      historyTimer = null;
+      if (textarea) pushHistory(textarea.value);
+    }, 300);
   });
 
   textarea.addEventListener('keydown', (e) => {
-    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey) {
+    const mod = e.ctrlKey || e.metaKey;
+    if (mod && !e.shiftKey && !e.altKey) {
       switch (e.key.toLowerCase()) {
         case 'b': e.preventDefault(); wrapSelection('**', '**'); return;
         case 'i': e.preventDefault(); wrapSelection('*', '*'); return;
         case 'h': e.preventDefault(); wrapSelection('==', '=='); return;
+        case 'z': e.preventDefault(); undo(); return;
+        case 'y': e.preventDefault(); redo(); return;
       }
+    }
+    if (mod && e.shiftKey && !e.altKey) {
+      if (e.key.toLowerCase() === 'z') { e.preventDefault(); redo(); return; }
     }
     if (e.key === 'Tab') {
       e.preventDefault();
@@ -71,6 +125,9 @@ export function getContent() {
 export function setContent(text) {
   if (!textarea) return;
   textarea.value = text;
+  history = [text];
+  historyIndex = 0;
+  if (historyTimer) { clearTimeout(historyTimer); historyTimer = null; }
 }
 
 export function insertAtCursor(text) {
