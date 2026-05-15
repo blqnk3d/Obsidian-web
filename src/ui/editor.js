@@ -36,22 +36,72 @@ export function wrapSelection(before, after) {
   const start = textarea.selectionStart;
   const end = textarea.selectionEnd;
   const selected = textarea.value.slice(start, end);
-  if (selected) {
-    textarea.value = textarea.value.slice(0, start) + before + selected + after + textarea.value.slice(end);
-    textarea.setSelectionRange(start + before.length, end + before.length);
-  } else {
+
+  if (!selected) {
     textarea.value = textarea.value.slice(0, start) + before + after + textarea.value.slice(end);
     textarea.setSelectionRange(start + before.length, start + before.length);
+    textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    return;
   }
+
+  const firstNonWS = selected.search(/\S/);
+  if (firstNonWS === -1) {
+    textarea.value = textarea.value.slice(0, start) + before + after + textarea.value.slice(end);
+    textarea.setSelectionRange(start + before.length, start + before.length);
+    textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    return;
+  }
+
+  let lastNonWS = -1;
+  for (let i = selected.length - 1; i >= 0; i--) {
+    const c = selected[i];
+    if (c !== ' ' && c !== '\t' && c !== '\n' && c !== '\r') {
+      lastNonWS = i;
+      break;
+    }
+  }
+
+  const leading = selected.slice(0, firstNonWS);
+  const middle = selected.slice(firstNonWS, lastNonWS + 1);
+  const trailing = selected.slice(lastNonWS + 1);
+
+  textarea.value = textarea.value.slice(0, start) + leading + before + middle + after + trailing + textarea.value.slice(end);
+  textarea.setSelectionRange(
+    start + leading.length + before.length,
+    start + leading.length + before.length + middle.length
+  );
   textarea.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
 export function insertLinePrefix(prefix) {
   if (!textarea) return;
   const start = textarea.selectionStart;
-  const lineStart = textarea.value.lastIndexOf('\n', start - 1) + 1;
-  textarea.value = textarea.value.slice(0, lineStart) + prefix + textarea.value.slice(lineStart);
-  textarea.setSelectionRange(start + prefix.length, start + prefix.length);
+  const end = textarea.selectionEnd;
+  const value = textarea.value;
+
+  if (start === end) {
+    const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+    textarea.value = value.slice(0, lineStart) + prefix + value.slice(lineStart);
+    textarea.setSelectionRange(start + prefix.length, start + prefix.length);
+    textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    return;
+  }
+
+  const firstLineStart = value.lastIndexOf('\n', start - 1) + 1;
+
+  const lastSelectedChar = Math.max(0, end - 1);
+  const lastLineStart = value.lastIndexOf('\n', lastSelectedChar - 1) + 1;
+
+  let lastLineEnd = value.indexOf('\n', lastLineStart);
+  if (lastLineEnd === -1) lastLineEnd = value.length;
+
+  const block = value.slice(firstLineStart, lastLineEnd);
+  const lines = block.split('\n');
+  const prefixed = lines.map(l => prefix + l).join('\n');
+
+  textarea.value = value.slice(0, firstLineStart) + prefixed + value.slice(lastLineEnd);
+  const lineCount = lines.length;
+  textarea.setSelectionRange(start + prefix.length, end + prefix.length * lineCount);
   textarea.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
