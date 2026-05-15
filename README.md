@@ -1,4 +1,6 @@
-# Static Obsidian (https://blqnk3d.github.io/Obsidian-web)
+# Static Obsidian
+
+<a href="https://blqnk3d.github.io/Obsidian-web" style="color:#888">To the side here </a>
 
 A client-side, markdown-based note editor with live preview, file tree, and Obsidian-like syntax — zero build step, runs entirely in the browser.
 
