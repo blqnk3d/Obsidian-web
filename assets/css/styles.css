@@ -181,8 +181,6 @@ html, body {
   background: var(--bg-tertiary);
   border-color: var(--accent);
 }
-#export-btn { margin-left: auto; }
-
 #show-sidebar-btn {
   background: var(--accent);
   color: #fff;
@@ -698,6 +696,8 @@ nav.toc a:hover {
   .callout { margin: 0 0 0.3em; }
   #preview table { margin: 0 0 0.3em; }
   #preview hr { margin: 0.5em 0; }
+  .embed-image-figure { margin: 0 0 0.3em; }
+  .embed-image-figure figcaption { color: #333; }
 }
 
 /* ── Images Overlay ── */

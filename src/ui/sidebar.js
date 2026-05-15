@@ -5,11 +5,9 @@ import { scheduleRender } from '../render/preview.js';
 
 let sidebarEl = null;
 let fileListEl = null;
-let onFileSwitch = null;
 
-export function initSidebar(container, onSwitch) {
+export function initSidebar(container) {
   sidebarEl = container;
-  onFileSwitch = onSwitch;
 
   fileListEl = document.getElementById('file-list');
 

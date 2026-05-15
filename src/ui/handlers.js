@@ -1,5 +1,5 @@
 import { storeImage, importVault, exportVault, save, deleteImage, renameFile, clearStore, nextUntitledName, saveFile } from '../core/storage.js';
-import { insertAtCursor, setContent as setEditorContent, wrapSelection, insertLinePrefix, insertTemplate, insertTable, SNIPPET_TEMPLATES, undo, redo } from './editor.js';
+import { insertAtCursor, setContent as setEditorContent, wrapSelection, insertLinePrefix, insertTemplate, insertTable, SNIPPET_TEMPLATES } from './editor.js';
 import { scheduleRender } from '../render/preview.js';
 import { setFilename, setContent, state, on, addImage } from '../core/state.js';
 import { getSettings, updateSettings, SETTINGS_KEY } from '../core/settings.js';
@@ -488,8 +488,6 @@ function initToolbar() {
     document.querySelectorAll('.tb-dropdown-open').forEach((dd) => dd.classList.remove('tb-dropdown-open'));
   });
 
-  bindToolbar('[data-tb="undo"]', () => undo());
-  bindToolbar('[data-tb="redo"]', () => redo());
   bindToolbar('[data-tb="ul"]', () => insertLinePrefix('- '));
   bindToolbar('[data-tb="ol"]', () => insertLinePrefix('1. '));
   bindToolbar('[data-tb="hr"]', () => insertAtCursor('\n---\n'));

@@ -135,7 +135,7 @@ async function renderLatex(container) {
     const text = node.nodeValue;
     if (!text || !text.includes('$')) continue;
 
-    if (text.match(/\$[^$]/)) {
+    if (text.includes('$')) {
       const parts = text.split(/(\$[^$]+?\$)/);
       const fragment = document.createDocumentFragment();
       let replaced = false;
@@ -203,7 +203,7 @@ function renderImageCaptions(container) {
     if (!caption) return;
     const figure = document.createElement('figure');
     figure.className = 'embed-image-figure';
-    img.parentNode.insertBefore(figure, img);
+    img.replaceWith(figure);
     figure.appendChild(img);
     const figcaption = document.createElement('figcaption');
     figcaption.textContent = caption;
@@ -224,10 +224,18 @@ function renderToc(container) {
   }
   if (!filtered.length) { tocEl.remove(); return; }
 
+  const usedIds = new Set();
   const list = document.createElement('ul');
   for (const h of filtered) {
     const level = parseInt(h.tagName[1], 10);
-    const id = 'toc-' + Math.random().toString(36).slice(2, 8);
+    let id = h.textContent.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    if (!id) id = 'heading';
+    let dedup = '';
+    while (usedIds.has(id + dedup)) {
+      dedup = dedup ? dedup.slice(0, -1) + (parseInt(dedup.slice(-1) || '0') + 1) : '-2';
+    }
+    id += dedup;
+    usedIds.add(id);
     h.id = id;
 
     const li = document.createElement('li');
