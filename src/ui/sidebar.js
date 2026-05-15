@@ -140,7 +140,6 @@ function startRename(item, oldName) {
 }
 
 async function deleteFileHandler(name) {
-  if (state.files.length <= 1) return;
   await deleteFile(name);
   state.fileContents.delete(name);
 
@@ -153,6 +152,15 @@ async function deleteFileHandler(name) {
       setContent(content);
       setFilename(next.name);
       scheduleRender(state.content);
+    } else {
+      const newName = nextUntitledName();
+      state.fileContents.set(newName, '');
+      state.files.push({ name: newName, updated_at: new Date().toISOString() });
+      setFilename(newName);
+      setEditorContent('');
+      setContent('');
+      scheduleRender('');
+      await saveFile(newName, '');
     }
   }
   renderFileList(state.files);

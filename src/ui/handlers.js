@@ -1,6 +1,7 @@
-import { storeImage, importVault, exportVault, save, deleteImage, renameFile } from '../core/storage.js';
-import { insertAtCursor } from './editor.js';
-import { setFilename, state, on, addImage } from '../core/state.js';
+import { storeImage, importVault, exportVault, save, deleteImage, renameFile, clearStore, nextUntitledName, saveFile } from '../core/storage.js';
+import { insertAtCursor, setContent as setEditorContent } from './editor.js';
+import { scheduleRender } from '../render/preview.js';
+import { setFilename, setContent, state, on, addImage } from '../core/state.js';
 import { getSettings, updateSettings } from '../core/settings.js';
 
 export function initHandlers() {
@@ -142,7 +143,7 @@ function handlePaste(e) {
     if (item.type.startsWith('image/')) {
       e.preventDefault();
       const file = item.getAsFile();
-      if (file) processImageFile(file);
+      if (file) processImageFile(file, true);
     }
   }
 }
@@ -172,20 +173,21 @@ function readFileAsDataUrl(file) {
   });
 }
 
-async function processImageFile(file) {
+async function processImageFile(file, isPaste = false) {
   const dataUrl = await readFileAsDataUrl(file).catch(() => null);
   if (!dataUrl) return;
 
+  const settings = getSettings();
+
   if (file.type === 'image/svg+xml') {
-    const name = uniqueName(file.name || `pasted-image-${Date.now()}.svg`);
+    const name = uniqueName(generateImageName(file, settings, isPaste));
     await storeImage(name, dataUrl);
     insertAtCursor(`![[${name}]]`);
     return;
   }
 
-  const settings = getSettings();
   const convertToJpeg = file.type !== 'image/png';
-  let name = generateImageName(file, settings);
+  let name = generateImageName(file, settings, isPaste);
 
   if (settings.imageNaming === 'prompt') {
     name = await promptImageName(name);
@@ -201,8 +203,8 @@ async function processImageFile(file) {
   insertAtCursor(`![[${name}]]`);
 }
 
-function generateImageName(file, settings) {
-  if (file.name && file.name.includes('.')) {
+function generateImageName(file, settings, isPaste = false) {
+  if (!isPaste && file.name && file.name.includes('.')) {
     return file.name;
   }
 
@@ -414,6 +416,30 @@ function showSettingsModal() {
     const el = document.getElementById('storage-browser-line');
     if (el) el.textContent = 'Browser quota: not available';
   });
+
+  const clearBtn = document.createElement('button');
+  clearBtn.textContent = 'Clear all data';
+  clearBtn.style.cssText = 'margin-top:14px;padding:6px 12px;font-size:12px;border:1px solid var(--accent);border-radius:4px;background:transparent;color:var(--accent);cursor:pointer;width:100%;';
+  clearBtn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    if (!confirm('Permanently delete all notes and images?')) return;
+    await clearStore('files');
+    state.images.clear();
+    await clearStore('images');
+    state.fileContents.clear();
+    state.files = [];
+    localStorage.removeItem('obsidian-settings');
+    const name = nextUntitledName();
+    state.fileContents.set(name, '');
+    state.files.push({ name, updated_at: new Date().toISOString() });
+    setFilename(name);
+    setEditorContent('');
+    setContent('');
+    scheduleRender('');
+    await saveFile(name, '');
+    overlay.remove();
+  });
+  storageDiv.appendChild(clearBtn);
 
   const buttons = document.createElement('div');
   buttons.className = 'rename-buttons';

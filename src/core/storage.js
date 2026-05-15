@@ -249,6 +249,16 @@ export function nextUntitledName() {
   }
 }
 
+export async function clearStore(storeName) {
+  if (!db) await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readwrite');
+    tx.objectStore(storeName).clear();
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
 export async function init() {
   await openDB();
   await load();
