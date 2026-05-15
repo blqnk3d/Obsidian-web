@@ -611,11 +611,30 @@ a[data-wikilink]:hover {
   margin: 0.3em 0;
 }
 
+/* ── Page Break ── */
+.page-break {
+  margin: 1.5em 0;
+  border: none;
+  position: relative;
+}
+.page-break::before {
+  content: '⏎ Page Break';
+  display: block;
+  text-align: center;
+  font-size: 11px;
+  font-family: var(--font-ui);
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+  border-top: 1px dashed var(--border);
+  padding-top: 0.5em;
+}
+
 /* ── Print ── */
 @media print {
   html, body { overflow: visible; height: auto; }
   #app { height: auto; display: block; }
   #topbar, #sidebar, #show-sidebar-btn, .rename-overlay { display: none; }
+  .page-break { break-after: page; page-break-after: always; visibility: hidden; margin: 0; padding: 0; }
   #editor-pane { display: none; }
   #preview-pane { flex: none; max-width: 100%; overflow: visible; display: block; height: auto; }
   #preview { overflow: visible; height: auto; color: #000; padding: 0; line-height: 1.4; font-size: 12px; }
