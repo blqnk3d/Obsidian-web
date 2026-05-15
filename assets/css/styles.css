@@ -686,7 +686,7 @@ nav.toc a:hover {
   #topbar, #sidebar, #show-sidebar-btn, .rename-overlay { display: none; }
   .page-break { break-after: page; page-break-after: always; visibility: hidden; margin: 0; padding: 0; }
   #editor-pane { display: none; }
-  #preview-pane { flex: none; max-width: 100%; overflow: visible; display: block; height: auto; }
+  #preview-pane { flex: none; max-width: 100% !important; overflow: visible; display: block; height: auto; }
   #preview { overflow: visible; height: auto; color: #000; padding: 0; line-height: 1.4; font-size: 12px; }
   #split-pane { display: block; height: auto; }
   body { background: #fff; color: #000; }
