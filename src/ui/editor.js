@@ -31,6 +31,30 @@ export function insertAtCursor(text) {
   textarea.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
+export function wrapSelection(before, after) {
+  if (!textarea) return;
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const selected = textarea.value.slice(start, end);
+  if (selected) {
+    textarea.value = textarea.value.slice(0, start) + before + selected + after + textarea.value.slice(end);
+    textarea.setSelectionRange(start + before.length, end + before.length);
+  } else {
+    textarea.value = textarea.value.slice(0, start) + before + after + textarea.value.slice(end);
+    textarea.setSelectionRange(start + before.length, start + before.length);
+  }
+  textarea.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+export function insertLinePrefix(prefix) {
+  if (!textarea) return;
+  const start = textarea.selectionStart;
+  const lineStart = textarea.value.lastIndexOf('\n', start - 1) + 1;
+  textarea.value = textarea.value.slice(0, lineStart) + prefix + textarea.value.slice(lineStart);
+  textarea.setSelectionRange(start + prefix.length, start + prefix.length);
+  textarea.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
 export function focus() {
   textarea?.focus();
 }

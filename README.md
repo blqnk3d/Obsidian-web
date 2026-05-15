@@ -13,11 +13,21 @@ A client-side, markdown-based note editor with live preview, file tree, and Obsi
 - Double-click preview jumps to corresponding source in editor
 - Auto-save (500 ms debounce) + `pagehide` force-save
 
+### Formatting Toolbar
+
+- **B** bold, **I** italic, **H** highlight — wrap selection with `**`, `*`, `==`
+- **H▾** heading dropdown (H1–H6) — inserts at line start
+- **•** bullet list, **1.** numbered list — inserts at line start
+- **—** horizontal rule, **&lt;/&gt;** code block
+- **[[ ]]** wiki-link — wrap selection with `[[]]`
+- **▣▾** callout dropdown — inserts `> [!TYPE]\n> ` template
+
 ### File Tree (floating popout window)
 
 - All notes listed sorted by `updated_at` descending
 - Create new note (`+`)
 - Rename (`✏`), delete (`✖`) on hover
+- Deleting the last file auto-creates `untitled.md`
 - Active file highlighted with accent left border
 - Window draggable by title bar, hide via `─`
 - Restore via `☰ Files` button in topbar
@@ -61,9 +71,16 @@ A client-side, markdown-based note editor with live preview, file tree, and Obsi
 ### Images
 
 - Paste / drag & drop images → base64 in IndexedDB
-- `![[name]]` inserts the image
-- Images overlay (`Images` button) to view / delete
+- Non-PNG → JPEG q0.7, downscale to 1920px max, PNG lossless, SVG bypass
+- Naming modes (configurable in settings): date-index, random, prompt each time
+- Images overlay (`Images` button, floating window) to view / insert / delete
 - Automatic cleanup of unused images (60 s grace period)
+
+### Settings (`⚙`)
+
+- **Naming mode** for pasted images: `date-index` (default), `random`, `prompt`
+- **Storage display**: notes count, images count + actual size, browser quota/usage with progress bar
+- **Clear all data**: wipes all notes, images, and settings — creates a fresh `untitled.md`
 
 ### Multi-File Storage
 
@@ -75,16 +92,20 @@ A client-side, markdown-based note editor with live preview, file tree, and Obsi
 ### Export / Import
 
 - Download `.md` (current note)
-- Export JSON (all notes + images)
-- Import JSON
-- Print / PDF
+- Export JSON (all notes + images) — consolidated in a single modal
+- Import JSON (via `Import vault` button in file tree footer)
+- Print / PDF (via browser print dialog)
 
 ### Additional UI
 
 - Dark theme (high contrast, Obsidian-like)
-- Floating file tree popout (formerly a sidebar) — draggable, hideable
+- Floating file tree popout (draggable, hideable)
+- Floating images overlay (draggable, styled like file tree)
+- Mutual exclusion: opening Files closes Images and vice-versa
 - Rename overlay for untitled notes on load
 - Scrollable preview with thin scrollbars
+- Logo SVG as browser tab favicon
+- Toolbar for common formatting operations
 
 ### Security
 
@@ -94,20 +115,22 @@ A client-side, markdown-based note editor with live preview, file tree, and Obsi
 ### Out of Scope (not implemented)
 
 - No note embeds, no block refs, no checkbox sync
-- No code highlighting, no settings page
+- No code highlighting
 - No filesystem access — everything in IndexedDB
 - No service worker / PWA
 
 ## Architecture
 
 ```
-index.html              – Entry point, import-map (CDN), topbar, split-pane
-assets/css/styles.css   – Full dark theme (~700 lines)
+index.html              – Entry point, import-map (CDN), topbar with toolbar, split-pane
+assets/css/styles.css   – Full dark theme (~770 lines)
+assets/logo.svg         – App logo / favicon
 src/
-├── app.js              – Init lifecycle, sidebar window (drag/hide), jump, rename prompt
+├── app.js              – Init lifecycle, sidebar/images drag/toggle, jump, rename prompt
 ├── core/
 │   ├── state.js        – Event bus, global state (content, filename, files, images, tags)
-│   └── storage.js      – IndexedDB CRUD (files/images), migration, export/import, image cleanup
+│   ├── storage.js      – IndexedDB CRUD (files/images), migration, export/import, image cleanup, clearStore
+│   └── settings.js     – Image naming mode in localStorage
 ├── parser/
 │   ├── config.js       – markdown-it init (html, breaks, linkify)
 │   └── preprocess.js   – Regex transforms: highlights, tags, images, callouts, wikilinks
@@ -115,9 +138,9 @@ src/
 │   ├── preview.js      – DOMPurify + debounced render (400 ms)
 │   └── postprocess.js  – Callout DOM, KaTeX (display+inline), Mermaid, wikilink clicks
 └── ui/
-    ├── editor.js       – Textarea wrapper, insertAtCursor, searchAndJump
-    ├── handlers.js     – Paste/drop, images overlay, rename, download, print, export/import
-    └── sidebar.js      – File list render, switch, create, rename, delete
+    ├── editor.js       – Textarea wrapper, insertAtCursor, wrapSelection, insertLinePrefix, searchAndJump
+    ├── handlers.js     – Paste/drop, images overlay, export modal, settings modal, toolbar, pagehide save
+    └── sidebar.js      – File list render, switch, create, rename, delete (auto-create on last)
 ```
 
 ## CDN Dependencies (via Import Map)
@@ -139,5 +162,5 @@ Open `index.html` in a browser (`file://` or `http://`). No server required.
 | File                    | Purpose                                                  |
 | ----------------------- | -------------------------------------------------------- |
 | `TEST.md`               | Test document covering all supported features            |
-| `assets/logo.svg`       | App logo                                                 |
+| `assets/logo.svg`       | App logo / favicon                                       |
 | `assets/css/styles.css` | All styles (dark theme, callout colors, print, overlays) |

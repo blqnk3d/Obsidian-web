@@ -13,6 +13,41 @@
   <header id="topbar">
     <img id="logo" src="assets/logo.svg" alt="logo">
     <span id="filename" title="Double-click to rename">untitled.md</span>
+    <div id="toolbar">
+      <button class="tb-btn" data-tb="bold" title="Bold"><strong>B</strong></button>
+      <button class="tb-btn" data-tb="italic" title="Italic"><em>I</em></button>
+      <button class="tb-btn" data-tb="highlight" title="Highlight">H</button>
+      <span class="tb-sep"></span>
+      <span class="tb-dropdown-wrap">
+        <button class="tb-btn" data-tb="heading" title="Heading">H▾</button>
+        <div class="tb-dropdown">
+          <button data-level="1">H1</button>
+          <button data-level="2">H2</button>
+          <button data-level="3">H3</button>
+          <button data-level="4">H4</button>
+          <button data-level="5">H5</button>
+          <button data-level="6">H6</button>
+        </div>
+      </span>
+      <button class="tb-btn" data-tb="ul" title="Bullet list">•</button>
+      <button class="tb-btn" data-tb="ol" title="Numbered list">1.</button>
+      <button class="tb-btn" data-tb="hr" title="Horizontal rule">—</button>
+      <span class="tb-sep"></span>
+      <button class="tb-btn" data-tb="code" title="Code block">&lt;/&gt;</button>
+      <button class="tb-btn" data-tb="wikilink" title="Wiki-link">[[ ]]</button>
+      <span class="tb-sep"></span>
+      <span class="tb-dropdown-wrap">
+        <button class="tb-btn" data-tb="callout" title="Callout">▣▾</button>
+        <div class="tb-dropdown">
+          <button data-type="note">Note</button>
+          <button data-type="info">Info</button>
+          <button data-type="tip">Tip</button>
+          <button data-type="warning">Warning</button>
+          <button data-type="danger">Danger</button>
+          <button data-type="quote">Quote</button>
+        </div>
+      </span>
+    </div>
     <span id="topbar-spacer"></span>
     <button id="show-sidebar-btn" title="Toggle file tree">&#x2630; Files</button>
     <button id="images-btn">Images</button>

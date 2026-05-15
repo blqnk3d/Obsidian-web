@@ -88,6 +88,87 @@ html, body {
   flex: 1;
 }
 
+/* ── Toolbar ── */
+#toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-right: 4px;
+}
+.tb-btn {
+  background: none;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+.tb-btn strong, .tb-btn em {
+  color: inherit;
+  font-style: inherit;
+}
+.tb-btn:hover {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+.tb-sep {
+  width: 1px;
+  height: 16px;
+  background: var(--border);
+  margin: 0 3px;
+  flex-shrink: 0;
+}
+.tb-dropdown-wrap {
+  position: relative;
+}
+.tb-dropdown {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 300;
+  min-width: 100px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  padding: 4px;
+  margin-top: 4px;
+}
+.tb-dropdown-open {
+  display: block;
+}
+.tb-dropdown button {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  padding: 4px 10px;
+  text-align: left;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.tb-dropdown button:hover {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+/* Make callout dropdown wider */
+[data-tb="callout"] + .tb-dropdown {
+  min-width: 110px;
+}
+
 #topbar button {
   background: var(--bg-surface);
   color: var(--text-primary);

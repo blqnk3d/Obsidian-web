@@ -1,5 +1,5 @@
 import { storeImage, importVault, exportVault, save, deleteImage, renameFile, clearStore, nextUntitledName, saveFile } from '../core/storage.js';
-import { insertAtCursor, setContent as setEditorContent } from './editor.js';
+import { insertAtCursor, setContent as setEditorContent, wrapSelection, insertLinePrefix } from './editor.js';
 import { scheduleRender } from '../render/preview.js';
 import { setFilename, setContent, state, on, addImage } from '../core/state.js';
 import { getSettings, updateSettings } from '../core/settings.js';
@@ -57,6 +57,8 @@ export function initHandlers() {
   window.addEventListener('pagehide', () => {
     save();
   });
+
+  initToolbar();
 }
 
 function initImagesWindowDrag(win, header) {
@@ -539,4 +541,54 @@ function showExportModal() {
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) overlay.remove();
   });
+}
+
+/* ── Toolbar ── */
+
+function initToolbar() {
+  document.querySelectorAll('.tb-dropdown-wrap').forEach((wrap) => {
+    const btn = wrap.querySelector('.tb-btn');
+    const dd = wrap.querySelector('.tb-dropdown');
+    if (!btn || !dd) return;
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      dd.classList.toggle('tb-dropdown-open');
+    });
+    dd.querySelectorAll('button').forEach((item) => {
+      item.addEventListener('click', () => {
+        dd.classList.remove('tb-dropdown-open');
+      });
+    });
+  });
+
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.tb-dropdown-open').forEach((dd) => dd.classList.remove('tb-dropdown-open'));
+  });
+
+  bindToolbar('[data-tb="bold"]', () => wrapSelection('**', '**'));
+  bindToolbar('[data-tb="italic"]', () => wrapSelection('*', '*'));
+  bindToolbar('[data-tb="highlight"]', () => wrapSelection('==', '=='));
+  bindToolbar('[data-tb="ul"]', () => insertLinePrefix('- '));
+  bindToolbar('[data-tb="ol"]', () => insertLinePrefix('1. '));
+  bindToolbar('[data-tb="hr"]', () => insertAtCursor('\n---\n'));
+  bindToolbar('[data-tb="code"]', () => insertAtCursor('```\n\n```'));
+  bindToolbar('[data-tb="wikilink"]', () => wrapSelection('[[', ']]'));
+
+  document.querySelectorAll('[data-tb="heading"] + .tb-dropdown button').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      insertLinePrefix('#'.repeat(Number(btn.dataset.level)) + ' ');
+    });
+  });
+
+  document.querySelectorAll('[data-tb="callout"] + .tb-dropdown button').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const type = btn.dataset.type;
+      insertAtCursor(`> [!${type.toUpperCase()}]\n> `);
+    });
+  });
+}
+
+function bindToolbar(selector, fn) {
+  const el = document.querySelector(selector);
+  if (el) el.addEventListener('click', fn);
 }
