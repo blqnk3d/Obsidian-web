@@ -15,6 +15,13 @@ export function initHandlers() {
     showExportModal();
   });
 
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+      e.preventDefault();
+      showExportModal();
+    }
+  });
+
   const imagesOverlay = document.getElementById('images-overlay');
   const imagesOverlayList = document.getElementById('images-overlay-list');
   const imagesHeader = document.getElementById('images-overlay-header');
