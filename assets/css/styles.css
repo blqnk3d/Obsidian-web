@@ -52,8 +52,8 @@ html, body {
 #topbar {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 6px 16px;
+  gap: 8px;
+  padding: 4px 12px;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
   font-size: 13px;
@@ -84,16 +84,14 @@ html, body {
   flex-shrink: 0;
 }
 
-#topbar-spacer {
-  flex: 1;
-}
-
 /* ── Toolbar ── */
 #toolbar {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 2px;
-  margin-right: 4px;
+  flex: 1;
+  min-width: 0;
 }
 .tb-btn {
   background: none;
