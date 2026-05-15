@@ -1,4 +1,5 @@
 import { state, setContent, setFilename, setFileList, setSaveStatus, addImage, getExportData, loadImportData, sortFilesByUpdatedAt } from './state.js';
+import { setContent as setEditorContent } from '../ui/editor.js';
 
 const DB_NAME = 'static-obsidian';
 const DB_VERSION = 2;
@@ -221,6 +222,7 @@ export function importVault(file) {
     try {
       const data = JSON.parse(e.target.result);
       loadImportData(data);
+      setEditorContent(data.content || '');
       save();
     } catch (err) {
       console.error('Import failed:', err);
