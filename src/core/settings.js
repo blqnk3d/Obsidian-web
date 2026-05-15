@@ -2,6 +2,7 @@ export const SETTINGS_KEY = 'obsidian-web-settings';
 
 const DEFAULTS = {
   imageNaming: 'date-index',
+  fontSize: 14,
 };
 
 export function getSettings() {

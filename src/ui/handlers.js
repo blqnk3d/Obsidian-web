@@ -69,6 +69,7 @@ export function initHandlers() {
 
   initToolbar();
   initSplitPane();
+  applyFontSize(getSettings().fontSize);
 }
 
 function rebuildImagesList(listEl) {
@@ -296,6 +297,38 @@ function showSettingsModal() {
   hint.style.cssText = 'font-size:11px;color:var(--text-muted);margin-top:6px;';
   hint.textContent = 'Note: when dragging a file with a name, the original name is kept. Other rules apply to clipboard pastes.';
 
+  /* ── Font size ── */
+  const fontSizeDiv = document.createElement('div');
+  fontSizeDiv.style.cssText = 'border-top:1px solid var(--border);margin-top:14px;padding-top:12px;';
+
+  const fontSizeLabel = document.createElement('div');
+  fontSizeLabel.className = 'rename-label';
+  fontSizeLabel.textContent = 'Font Size';
+  fontSizeLabel.style.marginBottom = '8px';
+
+  const fontSizeRow = document.createElement('div');
+  fontSizeRow.style.cssText = 'display:flex;align-items:center;gap:10px;';
+
+  const sizeSlider = document.createElement('input');
+  sizeSlider.type = 'range';
+  sizeSlider.min = 10;
+  sizeSlider.max = 24;
+  sizeSlider.value = settings.fontSize;
+  sizeSlider.style.cssText = 'flex:1;';
+
+  const sizeVal = document.createElement('span');
+  sizeVal.style.cssText = 'font-size:13px;color:var(--text-secondary);min-width:30px;text-align:right;';
+  sizeVal.textContent = settings.fontSize + 'px';
+
+  sizeSlider.addEventListener('input', () => {
+    sizeVal.textContent = sizeSlider.value + 'px';
+  });
+
+  fontSizeRow.appendChild(sizeSlider);
+  fontSizeRow.appendChild(sizeVal);
+  fontSizeDiv.appendChild(fontSizeLabel);
+  fontSizeDiv.appendChild(fontSizeRow);
+
   /* ── Storage section ── */
   const storageDiv = document.createElement('div');
   storageDiv.style.cssText = 'border-top:1px solid var(--border);margin-top:14px;padding-top:12px;';
@@ -389,19 +422,25 @@ function showSettingsModal() {
   box.appendChild(desc);
   box.appendChild(select);
   box.appendChild(hint);
+  box.appendChild(fontSizeDiv);
   box.appendChild(storageDiv);
   box.appendChild(buttons);
   overlay.appendChild(box);
   document.body.appendChild(overlay);
 
   saveBtn.addEventListener('click', () => {
-    updateSettings({ imageNaming: select.value });
+    updateSettings({ imageNaming: select.value, fontSize: parseInt(sizeSlider.value) });
+    applyFontSize(parseInt(sizeSlider.value));
     overlay.remove();
   });
   closeBtn.addEventListener('click', () => overlay.remove());
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) overlay.remove();
   });
+}
+
+function applyFontSize(size) {
+  document.documentElement.style.setProperty('--font-size', size + 'px');
 }
 
 function showExportModal() {
