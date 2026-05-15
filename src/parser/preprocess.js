@@ -5,8 +5,8 @@ const TAG_RE = /(?:^|\s)(#[^\s#!@$%^&*(),.?":{}|<>]+)/g;
 const WIKILINK_RE = /(?<!!)\[\[([^\]]+)\]\]/g;
 const EMBED_IMAGE_RE = /!\[\[([^\]]+)\]\]/gi;
 const CALLOUT_LINE_RE = /^>\s*\[!(\w+)\]\s*(.*)$/;
-const PAGEBREAK_RE = /^\{pagebreak\}\s*$/gm;
-const TOC_RE = /^\{toc(?::(\d+))?\}\s*$/gm;
+const PAGEBREAK_RE = /^\{pagebreak\}[ \t]*$/gm;
+const TOC_RE = /^\{toc(?::(\d+))?\}[ \t]*$/gm;
 
 function escapeAttr(str) {
   return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
