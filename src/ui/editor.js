@@ -13,6 +13,7 @@ export const SNIPPET_TEMPLATES = {
   'img-embed': '![[{cursor}]]',
   'link': '[{cursor}](url)',
   'todo': '- [ ] {cursor}',
+  'pagebreak': '{pagebreak}',
 };
 
 const TAB_SNIPPETS = {
@@ -38,6 +39,13 @@ export function initEditor(el, onChange) {
   });
 
   textarea.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey) {
+      switch (e.key.toLowerCase()) {
+        case 'b': e.preventDefault(); wrapSelection('**', '**'); return;
+        case 'i': e.preventDefault(); wrapSelection('*', '*'); return;
+        case 'h': e.preventDefault(); wrapSelection('==', '=='); return;
+      }
+    }
     if (e.key === 'Tab') {
       e.preventDefault();
       const start = textarea.selectionStart;

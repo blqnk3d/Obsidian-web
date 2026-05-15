@@ -488,9 +488,6 @@ function initToolbar() {
     document.querySelectorAll('.tb-dropdown-open').forEach((dd) => dd.classList.remove('tb-dropdown-open'));
   });
 
-  bindToolbar('[data-tb="bold"]', () => wrapSelection('**', '**'));
-  bindToolbar('[data-tb="italic"]', () => wrapSelection('*', '*'));
-  bindToolbar('[data-tb="highlight"]', () => wrapSelection('==', '=='));
   bindToolbar('[data-tb="ul"]', () => insertLinePrefix('- '));
   bindToolbar('[data-tb="ol"]', () => insertLinePrefix('1. '));
   bindToolbar('[data-tb="hr"]', () => insertAtCursor('\n---\n'));
@@ -499,6 +496,15 @@ function initToolbar() {
   document.querySelectorAll('[data-tb="heading"] + .tb-dropdown button').forEach((btn) => {
     btn.addEventListener('click', () => {
       insertLinePrefix('#'.repeat(Number(btn.dataset.level)) + ' ');
+    });
+  });
+
+  document.querySelectorAll('[data-tb="format"] + .tb-dropdown button').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const cmd = btn.dataset.cmd;
+      if (cmd === 'bold') wrapSelection('**', '**');
+      else if (cmd === 'italic') wrapSelection('*', '*');
+      else if (cmd === 'highlight') wrapSelection('==', '==');
     });
   });
 

@@ -14,9 +14,14 @@
     <img id="logo" src="assets/logo.svg" alt="logo">
     <span id="filename" title="Double-click to rename">untitled.md</span>
     <div id="toolbar">
-      <button class="tb-btn" data-tb="bold" title="Bold"><strong>B</strong></button>
-      <button class="tb-btn" data-tb="italic" title="Italic"><em>I</em></button>
-      <button class="tb-btn" data-tb="highlight" title="Highlight">H</button>
+      <span class="tb-dropdown-wrap">
+        <button class="tb-btn" data-tb="format" title="Format">A▾</button>
+        <div class="tb-dropdown tb-format-dropdown">
+          <button data-cmd="bold"><strong>B</strong> Bold</button>
+          <button data-cmd="italic"><em>I</em> Italic</button>
+          <button data-cmd="highlight">H Highlight</button>
+        </div>
+      </span>
       <span class="tb-sep"></span>
       <span class="tb-dropdown-wrap">
         <button class="tb-btn" data-tb="heading" title="Heading">H▾</button>
@@ -59,6 +64,7 @@
           <button data-snippet="img-embed">Image embed</button>
           <button data-snippet="link">Link</button>
           <button data-snippet="todo">Todo list</button>
+          <button data-snippet="pagebreak">Page Break</button>
         </div>
       </span>
       <span class="tb-dropdown-wrap">
