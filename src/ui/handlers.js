@@ -1,5 +1,5 @@
 import { storeImage, importVault, exportVault, save, deleteImage, renameFile, clearStore, nextUntitledName, saveFile } from '../core/storage.js';
-import { insertAtCursor, setContent as setEditorContent, wrapSelection, insertLinePrefix } from './editor.js';
+import { insertAtCursor, setContent as setEditorContent, wrapSelection, insertLinePrefix, insertTemplate, insertTable } from './editor.js';
 import { scheduleRender } from '../render/preview.js';
 import { setFilename, setContent, state, on, addImage } from '../core/state.js';
 import { getSettings, updateSettings } from '../core/settings.js';
@@ -571,7 +571,6 @@ function initToolbar() {
   bindToolbar('[data-tb="ul"]', () => insertLinePrefix('- '));
   bindToolbar('[data-tb="ol"]', () => insertLinePrefix('1. '));
   bindToolbar('[data-tb="hr"]', () => insertAtCursor('\n---\n'));
-  bindToolbar('[data-tb="code"]', () => insertAtCursor('```\n\n```'));
   bindToolbar('[data-tb="wikilink"]', () => wrapSelection('[[', ']]'));
 
   document.querySelectorAll('[data-tb="heading"] + .tb-dropdown button').forEach((btn) => {
@@ -584,6 +583,31 @@ function initToolbar() {
     btn.addEventListener('click', () => {
       const type = btn.dataset.type;
       insertAtCursor(`> [!${type.toUpperCase()}]\n> `);
+    });
+  });
+
+  const SNIPPET_TEMPLATES = {
+    'code-js': () => insertTemplate('```javascript\n{cursor}\n```'),
+    'code-py': () => insertTemplate('```python\n{cursor}\n```'),
+    'code-bash': () => insertTemplate('```bash\n{cursor}\n```'),
+    'code-html': () => insertTemplate('```html\n{cursor}\n```'),
+    'mermaid': () => insertTemplate('```mermaid\n{cursor}\n```'),
+    'latex': () => insertTemplate('$$\n{cursor}\n$$'),
+    'img-embed': () => insertTemplate('![[{cursor}]]'),
+    'link': () => insertTemplate('[{cursor}](url)'),
+    'todo': () => insertTemplate('- [ ] {cursor}'),
+  };
+
+  document.querySelectorAll('[data-tb="snippets"] + .tb-dropdown button').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const fn = SNIPPET_TEMPLATES[btn.dataset.snippet];
+      if (fn) fn();
+    });
+  });
+
+  document.querySelectorAll('[data-tb="table"] + .tb-dropdown button').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      insertTable(Number(btn.dataset.rows), Number(btn.dataset.cols));
     });
   });
 }

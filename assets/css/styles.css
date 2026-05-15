@@ -848,3 +848,11 @@ select.rename-input {
   font-size: 11px;
   color: var(--text-muted);
 }
+
+/* ── Snippets & Table dropdowns ── */
+.tb-snippets-dropdown {
+  min-width: 160px;
+}
+.tb-table-dropdown {
+  min-width: 100px;
+}

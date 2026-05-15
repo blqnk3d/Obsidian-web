@@ -33,7 +33,6 @@
       <button class="tb-btn" data-tb="ol" title="Numbered list">1.</button>
       <button class="tb-btn" data-tb="hr" title="Horizontal rule">—</button>
       <span class="tb-sep"></span>
-      <button class="tb-btn" data-tb="code" title="Code block">&lt;/&gt;</button>
       <button class="tb-btn" data-tb="wikilink" title="Wiki-link">[[ ]]</button>
       <span class="tb-sep"></span>
       <span class="tb-dropdown-wrap">
@@ -45,6 +44,33 @@
           <button data-type="warning">Warning</button>
           <button data-type="danger">Danger</button>
           <button data-type="quote">Quote</button>
+        </div>
+      </span>
+      <span class="tb-sep"></span>
+      <span class="tb-dropdown-wrap">
+        <button class="tb-btn" data-tb="snippets" title="Snippets">S▾</button>
+        <div class="tb-dropdown tb-snippets-dropdown">
+          <button data-snippet="code-js">Code (JS)</button>
+          <button data-snippet="code-py">Code (Python)</button>
+          <button data-snippet="code-bash">Code (Bash)</button>
+          <button data-snippet="code-html">Code (HTML)</button>
+          <button data-snippet="mermaid">Mermaid</button>
+          <button data-snippet="latex">LaTeX block</button>
+          <button data-snippet="img-embed">Image embed</button>
+          <button data-snippet="link">Link</button>
+          <button data-snippet="todo">Todo list</button>
+        </div>
+      </span>
+      <span class="tb-dropdown-wrap">
+        <button class="tb-btn" data-tb="table" title="Insert table">⊞▾</button>
+        <div class="tb-dropdown tb-table-dropdown">
+          <button data-rows="2" data-cols="2">2 x 2</button>
+          <button data-rows="3" data-cols="3">3 x 3</button>
+          <button data-rows="4" data-cols="4">4 x 4</button>
+          <button data-rows="5" data-cols="5">5 x 5</button>
+          <button data-rows="3" data-cols="4">3 x 4</button>
+          <button data-rows="4" data-cols="5">4 x 5</button>
+          <button data-rows="2" data-cols="6">2 x 6</button>
         </div>
       </span>
     </div>

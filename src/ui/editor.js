@@ -1,3 +1,16 @@
+const CURSOR = '{cursor}';
+
+const TAB_SNIPPETS = {
+  table: () => insertTable(4, 4),
+  code: () => insertTemplate('```\n{cursor}\n```'),
+  callout: () => insertTemplate('> [!NOTE]\n> {cursor}'),
+  mermaid: () => insertTemplate('```mermaid\n{cursor}\n```'),
+  img: () => insertTemplate('![[{cursor}]]'),
+  link: () => insertTemplate('[{cursor}](url)'),
+  todo: () => insertTemplate('- [ ] {cursor}'),
+  latex: () => insertTemplate('$$\n{cursor}\n$$'),
+};
+
 let textarea = null;
 let changeCallback = null;
 
@@ -7,6 +20,24 @@ export function initEditor(el, onChange) {
 
   textarea.addEventListener('input', () => {
     if (changeCallback) changeCallback(textarea.value);
+  });
+
+  textarea.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const start = textarea.selectionStart;
+      const value = textarea.value;
+      const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+      const beforeCursor = value.slice(lineStart, start);
+      const word = beforeCursor.trim();
+      if (word && TAB_SNIPPETS[word]) {
+        textarea.value = value.slice(0, lineStart) + value.slice(start);
+        textarea.selectionStart = textarea.selectionEnd = lineStart;
+        TAB_SNIPPETS[word]();
+      } else {
+        insertAtCursor('    ');
+      }
+    }
   });
 }
 
@@ -103,6 +134,29 @@ export function insertLinePrefix(prefix) {
   const lineCount = lines.length;
   textarea.setSelectionRange(start + prefix.length, end + prefix.length * lineCount);
   textarea.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+export function insertTemplate(text) {
+  if (!textarea) return;
+  const idx = text.indexOf(CURSOR);
+  const clean = idx !== -1 ? text.replace(CURSOR, '') : text;
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  textarea.value = textarea.value.slice(0, start) + clean + textarea.value.slice(end);
+  const newPos = idx !== -1 ? start + idx : start + clean.length;
+  textarea.setSelectionRange(newPos, newPos);
+  textarea.focus();
+  textarea.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+export function insertTable(rows, cols) {
+  if (!textarea) return;
+  const headerCells = Array(cols).fill(' ');
+  headerCells[0] = '{cursor}';
+  const header = '| ' + headerCells.join(' | ') + ' |';
+  const sep = '| ' + Array(cols).fill('---').join(' | ') + ' |';
+  const body = Array.from({ length: rows }, () => '| ' + Array(cols).fill(' ').join(' | ') + ' |');
+  insertTemplate([header, sep, ...body].join('\n'));
 }
 
 export function focus() {
