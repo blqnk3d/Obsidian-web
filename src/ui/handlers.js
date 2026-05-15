@@ -68,6 +68,7 @@ export function initHandlers() {
   });
 
   initToolbar();
+  initSplitPane();
 }
 
 function rebuildImagesList(listEl) {
@@ -539,4 +540,42 @@ function initToolbar() {
 function bindToolbar(selector, fn) {
   const el = document.querySelector(selector);
   if (el) el.addEventListener('click', fn);
+}
+
+function initSplitPane() {
+  const container = document.getElementById('split-pane');
+  const editorPane = document.getElementById('editor-pane');
+  const previewPane = document.getElementById('preview-pane');
+  const divider = document.getElementById('split-divider');
+  if (!container || !editorPane || !previewPane || !divider) {
+    return;
+  }
+
+  function setSplit(r) {
+    r = Math.max(0.15, Math.min(0.85, r));
+    editorPane.style.maxWidth = (r * 100) + '%';
+    previewPane.style.maxWidth = ((1 - r) * 100) + '%';
+  }
+
+  const saved = localStorage.getItem('split-ratio');
+  if (saved) setSplit(parseFloat(saved));
+
+  let drag = false;
+  divider.addEventListener('mousedown', (ev) => {
+    drag = true;
+    divider.classList.add('active');
+    ev.preventDefault();
+  });
+
+  document.addEventListener('mousemove', (ev) => {
+    if (!drag) return;
+    setSplit((ev.clientX - container.getBoundingClientRect().left) / container.offsetWidth);
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!drag) return;
+    drag = false;
+    divider.classList.remove('active');
+    localStorage.setItem('split-ratio', (editorPane.offsetWidth / container.offsetWidth));
+  });
 }

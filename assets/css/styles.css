@@ -202,6 +202,17 @@ html, body {
   overflow: hidden;
 }
 
+#split-divider {
+  width: 4px;
+  cursor: col-resize;
+  background: var(--border);
+  flex-shrink: 0;
+}
+#split-divider:hover,
+#split-divider.active {
+  background: var(--accent);
+}
+
 /* ── Floating Sidebar Window ── */
 #sidebar {
   position: fixed;
