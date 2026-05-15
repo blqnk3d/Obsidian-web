@@ -5,6 +5,7 @@ const TAG_RE = /(?:^|\s)(#[^\s#!@$%^&*(),.?":{}|<>]+)/g;
 const WIKILINK_RE = /(?<!!)\[\[([^\]]+)\]\]/g;
 const EMBED_IMAGE_RE = /!\[\[([^\]]+)\]\]/gi;
 const CALLOUT_LINE_RE = /^>\s*\[!(\w+)\]\s*(.*)$/;
+const PAGEBREAK_RE = /^\{pagebreak\}\s*$/gm;
 
 function escapeAttr(str) {
   return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -84,6 +85,10 @@ function preprocessCallouts(text) {
   return result.join('\n');
 }
 
+function preprocessPagebreaks(text) {
+  return text.replace(PAGEBREAK_RE, '<div class="page-break"></div>');
+}
+
 export function preprocess(text) {
   let result = text;
   result = preprocessHighlights(result);
@@ -91,5 +96,6 @@ export function preprocess(text) {
   result = preprocessImages(result);
   result = preprocessCallouts(result);
   result = preprocessWikilinks(result);
+  result = preprocessPagebreaks(result);
   return result;
 }
