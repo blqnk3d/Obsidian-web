@@ -35,6 +35,8 @@ export async function postprocess(container) {
   });
 
   renderCallouts(container);
+  renderImageCaptions(container);
+  renderToc(container);
   await renderLatex(container);
   await renderMermaid(container);
 }
@@ -193,4 +195,56 @@ async function renderMermaid(container) {
       console.warn('Mermaid error:', e);
     }
   }
+}
+
+function renderImageCaptions(container) {
+  container.querySelectorAll('img.embed-image[data-caption]').forEach(img => {
+    const caption = img.getAttribute('data-caption');
+    if (!caption) return;
+    const figure = document.createElement('figure');
+    figure.className = 'embed-image-figure';
+    img.parentNode.insertBefore(figure, img);
+    figure.appendChild(img);
+    const figcaption = document.createElement('figcaption');
+    figcaption.textContent = caption;
+    figure.appendChild(figcaption);
+  });
+}
+
+function renderToc(container) {
+  const tocEl = container.querySelector('nav.toc');
+  if (!tocEl) return;
+
+  const maxDepth = parseInt(tocEl.dataset.depth, 10) || 6;
+  const headings = container.querySelectorAll('h1, h2, h3, h4, h5, h6');
+  const filtered = [];
+  for (const h of headings) {
+    const level = parseInt(h.tagName[1], 10);
+    if (level <= maxDepth) filtered.push(h);
+  }
+  if (!filtered.length) { tocEl.remove(); return; }
+
+  const list = document.createElement('ul');
+  for (const h of filtered) {
+    const level = parseInt(h.tagName[1], 10);
+    const id = 'toc-' + Math.random().toString(36).slice(2, 8);
+    h.id = id;
+
+    const li = document.createElement('li');
+    li.style.marginLeft = ((level - 1) * 16) + 'px';
+
+    const a = document.createElement('a');
+    a.href = '#' + id;
+    a.textContent = h.textContent;
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      h.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      h.style.outline = '2px solid var(--accent)';
+      setTimeout(() => h.style.outline = '', 1500);
+    });
+
+    li.appendChild(a);
+    list.appendChild(li);
+  }
+  tocEl.appendChild(list);
 }

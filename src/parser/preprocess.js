@@ -6,6 +6,7 @@ const WIKILINK_RE = /(?<!!)\[\[([^\]]+)\]\]/g;
 const EMBED_IMAGE_RE = /!\[\[([^\]]+)\]\]/gi;
 const CALLOUT_LINE_RE = /^>\s*\[!(\w+)\]\s*(.*)$/;
 const PAGEBREAK_RE = /^\{pagebreak\}\s*$/gm;
+const TOC_RE = /^\{toc(?::(\d+))?\}\s*$/gm;
 
 function escapeAttr(str) {
   return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -30,18 +31,28 @@ function preprocessImages(text) {
   return text.replace(EMBED_IMAGE_RE, (match, inner) => {
     const parts = inner.split('|');
     const name = parts[0];
-    const dims = parts[1] || '';
+    let caption = '';
+    let dims = '';
+    for (let i = 1; i < parts.length; i++) {
+      const p = parts[i].trim();
+      if (/^\d+$/.test(p) || /^\d+x\d+$/.test(p)) {
+        dims = p;
+      } else if (p) {
+        caption = p;
+      }
+    }
     const data = getImage(name);
     if (data) {
-      let dimAttrs = '';
+      let attrs = '';
       if (dims.includes('x')) {
         const [w, h] = dims.split('x');
-        if (w) dimAttrs += ` width="${w}"`;
-        if (h) dimAttrs += ` height="${h}"`;
+        if (w) attrs += ` width="${w}"`;
+        if (h) attrs += ` height="${h}"`;
       } else if (dims) {
-        dimAttrs = ` width="${dims}"`;
+        attrs += ` width="${dims}"`;
       }
-      return `<img src="${data}" alt="${name}" class="embed-image"${dimAttrs}>`;
+      if (caption) attrs += ` data-caption="${escapeAttr(caption)}"`;
+      return `<img src="${data}" alt="${name}" class="embed-image"${attrs}>`;
     }
     return `<span class="missing-embed" title="Image not found: ${name}">${match}</span>`;
   });
@@ -89,6 +100,12 @@ function preprocessPagebreaks(text) {
   return text.replace(PAGEBREAK_RE, '<div class="page-break"></div>');
 }
 
+function preprocessToc(text) {
+  return text.replace(TOC_RE, (match, depth) => {
+    return `<nav class="toc" data-depth="${depth || ''}"></nav>`;
+  });
+}
+
 export function preprocess(text) {
   let result = text;
   result = preprocessHighlights(result);
@@ -97,5 +114,6 @@ export function preprocess(text) {
   result = preprocessCallouts(result);
   result = preprocessWikilinks(result);
   result = preprocessPagebreaks(result);
+  result = preprocessToc(result);
   return result;
 }

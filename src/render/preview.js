@@ -27,6 +27,7 @@ export function render(content) {
       'blockquote','pre','code','span','div',
       'a','img','strong','em','s','del','ins','sub','sup',
       'mark','abbr','address','input',
+      'figure','figcaption','nav',
     ],
     ALLOWED_ATTR: [
       'href','src','alt','title','class','id','data-wikilink',

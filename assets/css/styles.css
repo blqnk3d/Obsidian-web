@@ -608,6 +608,16 @@ a[data-wikilink]:hover {
   max-width: 100%;
   margin: 0.3em 0;
 }
+.embed-image-figure {
+  margin: 0.5em 0;
+  text-align: center;
+}
+.embed-image-figure figcaption {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  font-style: italic;
+}
 
 /* ── Page Break ── */
 .page-break {
@@ -625,6 +635,39 @@ a[data-wikilink]:hover {
   letter-spacing: 0.5px;
   border-top: 1px dashed var(--border);
   padding-top: 0.5em;
+}
+
+/* ── Table of Contents ── */
+nav.toc {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin: 1em 0;
+}
+nav.toc::before {
+  content: 'Table of Contents';
+  display: block;
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+}
+nav.toc ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+nav.toc li {
+  margin: 2px 0;
+}
+nav.toc a {
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 13px;
+}
+nav.toc a:hover {
+  text-decoration: underline;
 }
 
 /* ── Print ── */

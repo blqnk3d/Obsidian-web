@@ -1,8 +1,15 @@
+{toc:3}
+
 # Static Obsidian — Test Document
+
+## 0. Table of Contents
+
+The line at the top (`{toc:3}`) generates this TOC limited to h1–h3.
+`{toc}` without a depth shows all headings.
 
 ## 1. Standard Markdown
 
-**Bold text** and _italic text_ and ~~strikethrough~~.
+**Bold text** and *italic text* and ~~strikethrough~~.
 
 - **Unordered list item**
 - Another item
@@ -18,10 +25,6 @@
 ```
 code block
 ```
-
-1. - test
-
----
 
 ---
 
@@ -49,7 +52,7 @@ code block
 > [!note] This is a note callout
 > Content inside the callout with **bold text**
 
-> [!danger] danger
+> [!danger] Danger
 > Content inside the callout with **bold text**
 
 > [!warning] Warning
@@ -100,29 +103,68 @@ sequenceDiagram
     John-->>Alice: Great!
 ```
 
-## 10. Image Placeholder
+## 10. Code Snippets
+
+```javascript
+console.log('Hello from JavaScript');
+```
+
+```python
+print("Hello from Python")
+```
+
+```bash
+echo "Hello from Bash"
+```
+
+```html
+<h1>Hello from HTML</h1>
+```
+
+## 11. Image Placeholder
 
 ![[image.png]]
 
 _(paste/drop an image above to test)_
 
-## 11. Combined Syntax
+### 11a. Image with Caption
+
+![[image.png|My Caption]]
+
+_(paste an image — the text after the pipe becomes a styled caption below the image)_
+
+### 11b. Image with Dimensions + Caption
+
+![[image.png|300x200|Resized with caption]]
+
+_(both width/height and caption are picked up automatically)_
+
+### 11c. Image with Width + Caption
+
+![[image.png|300|Width and caption]]
+
+## 12. Page Break
+
+{pagebreak}
+
+_(Page break renders as a visual separator in preview, and forces a page break when exporting to PDF)_
+
+## 13. Combined Syntax
 
 ==Highlighted text with #tag and [[wikilink]]==
 
 > [!info] Callout with $x^2$ LaTeX inside
 > And a ==highlight== too
 
-## 12. Edge Cases
+## 14. Edge Cases
 
-{pagebreak}
 Empty callout:
 
 > [!info]
 
 Nested lists with formatting:
 
-- **Bold** and _italic_ and `code`
+- **Bold** and *italic* and `code`
 - ==highlighted list item==
 - [[wikilink in list]]
 
@@ -133,3 +175,26 @@ Horizontal rule with tags:
 #tag at end
 
 ---
+
+## Keyboard Shortcuts
+
+| Shortcut       | Action       |
+|----------------|--------------|
+| Ctrl+B         | Bold         |
+| Ctrl+I         | Italic       |
+| Ctrl+H         | Highlight    |
+| Ctrl+Z         | Undo         |
+| Ctrl+Y         | Redo         |
+| Ctrl+Shift+Z   | Redo (alt)   |
+
+## Toolbar
+
+- **A▾** — Format submenu: Bold, Italic, Highlight
+- **H▾** — Heading submenu: H1–H6
+- **•**, **1.** — Bullet / numbered list
+- **—** — Horizontal rule
+- **[[ ]]** — Wiki-link
+- **▣▾** — Callout submenu
+- **S▾** — Snippets submenu (code blocks, mermaid, latex, image embed, link, todo, page break)
+- **⊞▾** — Table submenu
+- **Files**, **Images**, **Export**, **⚙** — file management
