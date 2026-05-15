@@ -2,9 +2,9 @@
 
 ## 1. Standard Markdown
 
-**Bold text** and *italic text* and ~~strikethrough~~.
+**Bold text** and _italic text_ and ~~strikethrough~~.
 
-- Unordered list item
+- **Unordered list item**
 - Another item
   - Nested item
 
@@ -19,12 +19,16 @@
 code block
 ```
 
+1. - test
+
+---
+
 ---
 
 ## 2. GFM Tables
 
 | Header 1 | Header 2 |
-|----------|----------|
+| -------- | -------- |
 | Cell 1   | Cell 2   |
 | Cell 3   | Cell 4   |
 
@@ -43,6 +47,9 @@ code block
 ## 6. Callouts
 
 > [!note] This is a note callout
+> Content inside the callout with **bold text**
+
+> [!danger] danger
 > Content inside the callout with **bold text**
 
 > [!warning] Warning
@@ -97,7 +104,7 @@ sequenceDiagram
 
 ![[image.png]]
 
-*(paste/drop an image above to test)*
+_(paste/drop an image above to test)_
 
 ## 11. Combined Syntax
 
@@ -108,12 +115,14 @@ sequenceDiagram
 
 ## 12. Edge Cases
 
+{pagebreak}
 Empty callout:
 
 > [!info]
 
 Nested lists with formatting:
-- **Bold** and *italic* and `code`
+
+- **Bold** and _italic_ and `code`
 - ==highlighted list item==
 - [[wikilink in list]]
 
@@ -122,3 +131,5 @@ Horizontal rule with tags:
 ---
 
 #tag at end
+
+---
