@@ -3,13 +3,16 @@ import { state, setContent, setFilename, on } from './core/state.js';
 import { initParser } from './parser/config.js';
 import { initPreview, scheduleRender } from './render/preview.js';
 import { initEditor, setContent as setEditorContent, searchAndJump } from './ui/editor.js';
-import { initHandlers } from './ui/handlers.js';
+import { initHandlers, showConflictModal } from './ui/handlers.js';
 import { initSidebar } from './ui/sidebar.js';
 import { makeDraggable } from './ui/drag.js';
 import { createPromptModal } from './ui/modal.js';
+import { showToast } from './ui/toast.js';
+import { pullFromRemote, pushToRemote, getGitSettings, getDirtyFiles, markDirty, clearDirty } from './core/git.js';
 
 let saveTimer = null;
 const SAVE_DEBOUNCE = 500;
+let syncIntervalId = null;
 
 async function init() {
   const editorEl = document.getElementById('editor');
@@ -21,6 +24,8 @@ async function init() {
   initPreview(previewEl);
   initHandlers();
   if (sidebarEl) initSidebar(sidebarEl);
+
+  initSyncIndicator();
 
   await initStorage();
 
@@ -44,6 +49,97 @@ async function init() {
 
   initSidebarWindow();
   promptRenameUntitled();
+
+  window.addEventListener('git-settings-changed', () => {
+    scheduleAutoSync();
+  });
+
+  /* Auto-sync */
+  scheduleAutoSync();
+
+  const git = getGitSettings();
+  if (git.owner && git.repo && git.token && git.autoSync) {
+    autoPull().catch(() => {});
+  }
+}
+
+function initSyncIndicator() {
+  const topbar = document.getElementById('topbar');
+  const settingsBtn = document.getElementById('settings-btn');
+  if (!topbar || !settingsBtn) return;
+
+  const el = document.createElement('div');
+  el.id = 'sync-indicator';
+  el.title = 'Click to open settings';
+  el.innerHTML = '<span class="sync-dot off"></span><span class="sync-text">Sync</span>';
+  el.addEventListener('click', () => {
+    document.getElementById('settings-btn')?.click();
+  });
+  topbar.insertBefore(el, settingsBtn);
+}
+
+function updateSyncIndicator(status, msg) {
+  const el = document.getElementById('sync-indicator');
+  if (!el) return;
+  const dot = el.querySelector('.sync-dot');
+  const text = el.querySelector('.sync-text');
+  if (dot) dot.className = 'sync-dot ' + status;
+  if (text) text.textContent = msg || 'Sync';
+  if (el.title) el.title = msg || 'Click to open settings';
+}
+
+function scheduleAutoSync() {
+  if (syncIntervalId) { clearInterval(syncIntervalId); syncIntervalId = null; }
+  const git = getGitSettings();
+  if (!git.autoSync || !git.owner || !git.repo || !git.token) return;
+  syncIntervalId = setInterval(() => {
+    autoPush().catch(() => {});
+  }, git.syncInterval);
+}
+
+async function autoPull() {
+  const git = getGitSettings();
+  if (!git.owner || !git.repo || !git.token || !git.autoSync) return;
+
+  updateSyncIndicator('syncing', 'Syncing...');
+  try {
+    const result = await pullFromRemote((msg) => {
+      const el = document.getElementById('sync-indicator');
+      if (el) el.querySelector('.sync-text').textContent = msg;
+    });
+    updateSyncIndicator('synced', 'Synced');
+    if (result.synced > 0) {
+      showToast(`Pulled ${result.synced} file(s)`, 'info', 2000);
+    }
+  } catch (e) {
+    updateSyncIndicator('synced', 'Synced');
+  }
+}
+
+async function autoPush() {
+  const git = getGitSettings();
+  if (!git.owner || !git.repo || !git.token || !git.autoSync) return;
+
+  const dirty = getDirtyFiles();
+  if (dirty.size === 0) return;
+
+  updateSyncIndicator('syncing', 'Syncing...');
+  try {
+    const r = await pushToRemote(
+      (msg) => {
+        const el = document.getElementById('sync-indicator');
+        if (el) el.querySelector('.sync-text').textContent = msg;
+      },
+      [...dirty]
+    );
+    updateSyncIndicator('synced', 'Synced');
+    if (r.pushed > 0) {
+      showToast(`Pushed ${r.pushed} file(s)`, 'success', 2000);
+    }
+  } catch (e) {
+    updateSyncIndicator('error', 'Sync error');
+    showToast('Auto-sync failed: ' + e.message, 'error', 4000);
+  }
 }
 
 function initSidebarWindow() {
@@ -56,7 +152,6 @@ function initSidebarWindow() {
 
   let positioned = false;
 
-  /* ── Persist visibility ── */
   const stored = localStorage.getItem('sidebar-visible');
   if (stored === 'false') {
     sidebar.classList.add('hidden');
@@ -78,7 +173,6 @@ function initSidebarWindow() {
 
   makeDraggable(sidebar, header, () => { positioned = true; });
 
-  /* ── Toggle via Files button ── */
   showBtn?.addEventListener('click', () => {
     sidebar.classList.toggle('hidden');
     if (!sidebar.classList.contains('hidden')) {
@@ -91,13 +185,11 @@ function initSidebarWindow() {
     localStorage.setItem('sidebar-visible', !sidebar.classList.contains('hidden'));
   });
 
-  /* ── Hide via ─ button ── */
   hideBtn?.addEventListener('click', () => {
     sidebar.classList.add('hidden');
     localStorage.setItem('sidebar-visible', 'false');
   });
 
-  /* ── Reposition on resize if not dragged ── */
   window.addEventListener('resize', () => {
     if (!positioned && !sidebar.classList.contains('hidden')) {
       positionUnderButton();
@@ -129,6 +221,7 @@ function promptRenameUntitled() {
 
 function handleEditorChange(content) {
   setContent(content);
+  markDirty(state.filename);
 }
 
 function debounceSave() {

@@ -4,6 +4,8 @@ import { saveFile } from './storage.js';
 const GIT_SETTINGS_KEY = 'obsidian-web-git-settings';
 const REMOTE_SHA_KEY = 'obsidian-web-git-sha-map';
 
+const dirtyFiles = new Set();
+
 const PROVIDERS = {
   github: {
     label: 'GitHub',
@@ -52,6 +54,8 @@ export function getGitSettings() {
       folder: 'notes/',
       authorName: '',
       authorEmail: '',
+      autoSync: true,
+      syncInterval: 600000,
       lastSyncAt: null,
       lastSyncStatus: '',
       ...stored,
@@ -67,6 +71,8 @@ export function getGitSettings() {
       folder: 'notes/',
       authorName: '',
       authorEmail: '',
+      autoSync: true,
+      syncInterval: 600000,
       lastSyncAt: null,
       lastSyncStatus: '',
     };
@@ -90,6 +96,18 @@ export function getRemoteShaMap() {
 
 export function setRemoteShaMap(map) {
   localStorage.setItem(REMOTE_SHA_KEY, JSON.stringify(map));
+}
+
+export function markDirty(fileName) {
+  dirtyFiles.add(fileName);
+}
+
+export function clearDirty() {
+  dirtyFiles.clear();
+}
+
+export function getDirtyFiles() {
+  return new Set(dirtyFiles);
 }
 
 function buildApiUrl(settings) {
@@ -361,7 +379,7 @@ export async function pullFromRemote(onProgress) {
   return { synced, files: remoteFiles };
 }
 
-export async function pushToRemote(onProgress) {
+export async function pushToRemote(onProgress, filesToPush) {
   const settings = getGitSettings();
   if (!settings.owner || !settings.repo || !settings.token) {
     throw new Error('Configure Git settings first');
@@ -370,7 +388,13 @@ export async function pushToRemote(onProgress) {
   const shaMap = getRemoteShaMap();
   const newShaMap = { ...shaMap };
   let pushed = 0;
-  const files = [...state.fileContents.entries()];
+
+  let files;
+  if (filesToPush) {
+    files = filesToPush.filter(f => state.fileContents.has(f)).map(f => [f, state.fileContents.get(f)]);
+  } else {
+    files = [...state.fileContents.entries()];
+  }
 
   onProgress?.(`Pushing ${files.length} files...`);
 
@@ -383,15 +407,18 @@ export async function pushToRemote(onProgress) {
     pushed++;
   }
 
-  for (const fileName of Object.keys(shaMap)) {
-    if (!state.fileContents.has(fileName)) {
-      onProgress?.(`Deleting ${fileName}...`);
-      await deleteRemoteFile(settings, fileName, `Delete ${fileName}`, shaMap[fileName]);
-      delete newShaMap[fileName];
+  if (!filesToPush) {
+    for (const fileName of Object.keys(shaMap)) {
+      if (!state.fileContents.has(fileName)) {
+        onProgress?.(`Deleting ${fileName}...`);
+        await deleteRemoteFile(settings, fileName, `Delete ${fileName}`, shaMap[fileName]);
+        delete newShaMap[fileName];
+      }
     }
   }
 
   setRemoteShaMap(newShaMap);
+  clearDirty();
   saveGitSettings({
     lastSyncAt: new Date().toISOString(),
     lastSyncStatus: `Pushed ${pushed} files`,
