@@ -8,7 +8,7 @@ import { initSidebar } from './ui/sidebar.js';
 import { makeDraggable } from './ui/drag.js';
 import { createPromptModal } from './ui/modal.js';
 import { showToast } from './ui/toast.js';
-import { pullFromRemote, pushToRemote, getGitSettings, getDirtyFiles, markDirty, clearDirty } from './core/git.js';
+import { pullFromRemote, pushToRemote, getGitSettings, getDirtyFiles, getDirtyImages, markDirty, clearDirty } from './core/git.js';
 
 let saveTimer = null;
 const SAVE_DEBOUNCE = 500;
@@ -139,8 +139,9 @@ async function autoPush() {
   }
 
   const dirty = getDirtyFiles();
-  console.log('[auto-sync] autoPush: dirty files count=' + dirty.size + ' files=' + JSON.stringify([...dirty]));
-  if (dirty.size === 0) {
+  const dirtyImgs = getDirtyImages();
+  console.log('[auto-sync] autoPush: dirty files count=' + dirty.size + ' files=' + JSON.stringify([...dirty]) + ' images=' + dirtyImgs.size);
+  if (dirty.size === 0 && dirtyImgs.size === 0) {
     console.log('[auto-sync] autoPush: nothing dirty, skipping');
     return;
   }
@@ -155,9 +156,11 @@ async function autoPush() {
       },
       [...dirty]
     );
-    console.log('[auto-sync] autoPush: pushed ' + r.pushed + ' files');
+    console.log('[auto-sync] autoPush: pushed ' + r.pushed + ' files conflicts=' + (r.conflicts?.length || 0));
     updateSyncIndicator('synced', 'Synced');
-    if (r.pushed > 0) {
+    if (r.conflicts && r.conflicts.length > 0) {
+      showToast(`Conflict on ${r.conflicts.map(c => c.fileName).join(', ')} — open Git settings to resolve`, 'error', 6000);
+    } else if (r.pushed > 0) {
       showToast(`Pushed ${r.pushed} file(s)`, 'success', 2000);
     }
   } catch (e) {

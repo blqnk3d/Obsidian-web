@@ -3,7 +3,7 @@ import { insertAtCursor, setContent, wrapSelection, insertLinePrefix, insertTemp
 import { scheduleRender } from '../render/preview.js';
 import { setFilename, setContent as setStateContent, state, on } from '../core/state.js';
 import { getSettings, updateSettings, SETTINGS_KEY } from '../core/settings.js';
-import { pullFromRemote, pushToRemote, testGitConnection, getGitSettings, saveGitSettings } from '../core/git.js';
+import { pullFromRemote, pushToRemote, testGitConnection, getGitSettings, saveGitSettings, markDirtyImage, setRemoteShaMap, getRemoteShaMap } from '../core/git.js';
 import { makeDraggable } from './drag.js';
 import { createPromptModal } from './modal.js';
 
@@ -158,6 +158,7 @@ async function processImageFile(file, isPaste = false) {
   if (file.type === 'image/svg+xml') {
     const name = uniqueName(generateImageName(file, settings, isPaste));
     await storeImage(name, dataUrl);
+    markDirtyImage(name);
     insertAtCursor(`![[${name}]]`);
     return;
   }
@@ -176,6 +177,7 @@ async function processImageFile(file, isPaste = false) {
   name = uniqueName(compressed.name);
 
   await storeImage(name, compressed.dataUrl);
+  markDirtyImage(name);
   insertAtCursor(`![[${name}]]`);
 }
 
@@ -728,7 +730,33 @@ export function showGitSettingsModal() {
     saveGitSection();
     try {
       const r = await pushToRemote((msg) => { statusText.textContent = msg; });
-      updateStatus(`Pushed ${r.pushed} files`, 'connected');
+      if (r.conflicts && r.conflicts.length > 0) {
+        const fileNames = r.conflicts.map(c => c.fileName);
+        const choice = await showConflictModal(fileNames);
+        if (choice === 'remote') {
+          for (const c of r.conflicts) {
+            if (c.remoteContent !== null) {
+              await saveFile(c.fileName, c.remoteContent);
+              state.fileContents.set(c.fileName, c.remoteContent);
+              if (c.fileName === state.filename) {
+                setContent(c.remoteContent);
+                setStateContent(c.remoteContent);
+              }
+            }
+          }
+          updateStatus('Conflicts resolved — pulled remote', 'connected');
+        } else {
+          const shaMap = getRemoteShaMap();
+          for (const c of r.conflicts) {
+            if (c.remoteSha) shaMap[c.fileName] = c.remoteSha;
+          }
+          setRemoteShaMap(shaMap);
+          const retry = await pushToRemote((msg) => { statusText.textContent = msg; }, fileNames);
+          updateStatus(`Pushed ${retry.pushed} files (conflicts resolved)`, 'connected');
+        }
+      } else {
+        updateStatus(`Pushed ${r.pushed} files`, 'connected');
+      }
     } catch (e) {
       updateStatus('Push failed: ' + e.message, 'error');
     }
