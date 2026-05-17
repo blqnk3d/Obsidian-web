@@ -3,7 +3,7 @@ import { insertAtCursor, setContent, wrapSelection, insertLinePrefix, insertTemp
 import { scheduleRender } from '../render/preview.js';
 import { setFilename, setContent as setStateContent, state, on } from '../core/state.js';
 import { getSettings, updateSettings, SETTINGS_KEY } from '../core/settings.js';
-import { pullFromRemote, pushToRemote, testGitConnection, getGitSettings, saveGitSettings, markDirtyImage, setRemoteShaMap, getRemoteShaMap } from '../core/git.js';
+import { pullFromRemote, pushToRemote, testGitConnection, getGitSettings, saveGitSettings, markDirtyImage, markDeletedImage, setRemoteShaMap, getRemoteShaMap } from '../core/git.js';
 import { makeDraggable } from './drag.js';
 import { createPromptModal } from './modal.js';
 
@@ -97,6 +97,7 @@ function rebuildImagesList(listEl) {
     delBtn.title = 'Delete image';
     delBtn.addEventListener('click', (e) => {
       e.stopPropagation();
+      markDeletedImage(name);
       state.images.delete(name);
       deleteImage(name);
       rebuildImagesList(listEl);

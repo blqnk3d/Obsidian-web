@@ -6,6 +6,7 @@ const REMOTE_SHA_KEY = 'obsidian-web-git-sha-map';
 
 const dirtyFiles = new Set();
 const dirtyImages = new Set();
+const deletedImages = new Set();
 const IMAGE_EXTS = /\.(png|jpg|jpeg|gif|svg|webp|bmp|ico)$/i;
 
 const PROVIDERS = {
@@ -137,6 +138,22 @@ export function markDirtyImage(name) {
 export function getDirtyImages() {
   const copy = new Set(dirtyImages);
   console.log('[git] getDirtyImages() → ' + copy.size + ' image(s)');
+  return copy;
+}
+
+export function markDeletedImage(name) {
+  deletedImages.add(name);
+  console.log('[git] markDeletedImage("' + name + '") size=' + deletedImages.size);
+}
+
+export function clearDeletedImages() {
+  console.log('[git] clearDeletedImages() — cleared ' + deletedImages.size + ' image(s)');
+  deletedImages.clear();
+}
+
+export function getDeletedImages() {
+  const copy = new Set(deletedImages);
+  console.log('[git] getDeletedImages() → ' + copy.size + ' image(s)');
   return copy;
 }
 
@@ -577,27 +594,25 @@ export async function pushToRemote(onProgress, filesToPush) {
         delete newShaMap[fileName];
       }
     }
-    // Delete remote images not in local state
-    for (const key of Object.keys(shaMap)) {
-      if (key.startsWith('images/')) {
-        const imgName = key.slice(7);
-        if (!state.images.has(imgName)) {
-          const imgRelPath = 'images/' + imgName;
-          onProgress?.(`Deleting ${imgName}...`);
-          try {
-            await deleteRemoteFile(settings, imgRelPath, `Delete ${imgName}`, shaMap[key]);
-          } catch (e) {
-            if (!e.message.includes('404')) throw e;
-          }
-          delete newShaMap[key];
-        }
+    // Delete remote images marked for deletion
+    for (const imgName of deletedImages) {
+      const imgKey = 'images/' + imgName;
+      if (!shaMap[imgKey]) continue;
+      const imgRelPath = 'images/' + imgName;
+      onProgress?.(`Deleting ${imgName}...`);
+      try {
+        await deleteRemoteFile(settings, imgRelPath, `Delete ${imgName}`, shaMap[imgKey]);
+      } catch (e) {
+        if (!e.message.includes('404')) throw e;
       }
+      delete newShaMap[imgKey];
     }
   }
 
   setRemoteShaMap(newShaMap);
   clearDirty();
   clearDirtyImages();
+  clearDeletedImages();
   saveGitSettings({
     lastSyncAt: new Date().toISOString(),
     lastSyncStatus: `Pushed ${pushed} files`,
