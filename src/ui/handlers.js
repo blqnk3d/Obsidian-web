@@ -1,8 +1,9 @@
-import { storeImage, importVault, exportVault, save, deleteImage, renameFile, clearStore, nextUntitledName, saveFile } from '../core/storage.js';
-import { insertAtCursor, setContent as setEditorContent, wrapSelection, insertLinePrefix, insertTemplate, insertTable, SNIPPET_TEMPLATES } from './editor.js';
+import { storeImage, importVault, exportVault, save, deleteImage, clearStore, nextUntitledName, saveFile } from '../core/storage.js';
+import { insertAtCursor, setContent, wrapSelection, insertLinePrefix, insertTemplate, insertTable, SNIPPET_TEMPLATES } from './editor.js';
 import { scheduleRender } from '../render/preview.js';
-import { setFilename, setContent, state, on, addImage } from '../core/state.js';
+import { setFilename, setContent as setStateContent, state, on } from '../core/state.js';
 import { getSettings, updateSettings, SETTINGS_KEY } from '../core/settings.js';
+import { pullFromRemote, pushToRemote, testGitConnection, getGitSettings, saveGitSettings, markDirtyImage, markDeletedImage, setRemoteShaMap, getRemoteShaMap } from '../core/git.js';
 import { makeDraggable } from './drag.js';
 import { createPromptModal } from './modal.js';
 
@@ -96,6 +97,7 @@ function rebuildImagesList(listEl) {
     delBtn.title = 'Delete image';
     delBtn.addEventListener('click', (e) => {
       e.stopPropagation();
+      markDeletedImage(name);
       state.images.delete(name);
       deleteImage(name);
       rebuildImagesList(listEl);
@@ -157,6 +159,7 @@ async function processImageFile(file, isPaste = false) {
   if (file.type === 'image/svg+xml') {
     const name = uniqueName(generateImageName(file, settings, isPaste));
     await storeImage(name, dataUrl);
+    markDirtyImage(name);
     insertAtCursor(`![[${name}]]`);
     return;
   }
@@ -175,6 +178,7 @@ async function processImageFile(file, isPaste = false) {
   name = uniqueName(compressed.name);
 
   await storeImage(name, compressed.dataUrl);
+  markDirtyImage(name);
   insertAtCursor(`![[${name}]]`);
 }
 
@@ -262,6 +266,54 @@ function promptImageName(defaultName) {
       onConfirm: (val) => resolve(val || defaultName),
       onCancel: () => resolve(null),
     });
+  });
+}
+
+export function showConflictModal(conflictFiles) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'rename-overlay conflict-overlay';
+    const box = document.createElement('div');
+    box.className = 'rename-box';
+
+    const label = document.createElement('div');
+    label.className = 'rename-label';
+    label.textContent = 'Sync Conflict';
+
+    const desc = document.createElement('div');
+    desc.style.cssText = 'font-size:12px;color:var(--text-muted);margin-bottom:8px;';
+    desc.textContent = `Some files differ between local and remote. Choose which version to keep:`;
+
+    const list = document.createElement('ul');
+    list.className = 'conflict-list';
+    conflictFiles.forEach(f => {
+      const li = document.createElement('li');
+      li.textContent = f;
+      list.appendChild(li);
+    });
+
+    const btnRow = document.createElement('div');
+    btnRow.className = 'conflict-buttons';
+
+    const localBtn = document.createElement('button');
+    localBtn.className = 'conflict-btn conflict-btn-local';
+    localBtn.textContent = 'Keep local';
+    localBtn.addEventListener('click', () => { overlay.remove(); resolve('local'); });
+
+    const remoteBtn = document.createElement('button');
+    remoteBtn.className = 'conflict-btn conflict-btn-remote';
+    remoteBtn.textContent = 'Use remote';
+    remoteBtn.addEventListener('click', () => { overlay.remove(); resolve('remote'); });
+
+    btnRow.appendChild(localBtn);
+    btnRow.appendChild(remoteBtn);
+
+    box.appendChild(label);
+    box.appendChild(desc);
+    box.appendChild(list);
+    box.appendChild(btnRow);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
   });
 }
 
@@ -397,8 +449,8 @@ function showSettingsModal() {
     state.fileContents.set(name, '');
     state.files.push({ name, updated_at: new Date().toISOString() });
     setFilename(name);
-    setEditorContent('');
     setContent('');
+    setStateContent('');
     scheduleRender('');
     await saveFile(name, '');
     overlay.remove();
@@ -423,8 +475,7 @@ function showSettingsModal() {
   box.appendChild(select);
   box.appendChild(hint);
   box.appendChild(fontSizeDiv);
-  box.appendChild(storageDiv);
-  box.appendChild(buttons);
+  box.appendChild(storageDiv);  box.appendChild(buttons);
   overlay.appendChild(box);
   document.body.appendChild(overlay);
 
@@ -441,6 +492,341 @@ function showSettingsModal() {
 
 function applyFontSize(size) {
   document.documentElement.style.setProperty('--font-size', size + 'px');
+}
+
+export function showGitSettingsModal() {
+  const existing = document.querySelector('.rename-overlay');
+  if (existing) return;
+
+  const gitSettings = getGitSettings();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'rename-overlay';
+
+  const box = document.createElement('div');
+  box.className = 'rename-box settings-box';
+
+  const title = document.createElement('div');
+  title.className = 'rename-label';
+  title.textContent = 'Git Sync';
+  title.style.marginBottom = '8px';
+  box.appendChild(title);
+
+  /* Auto-sync row */
+  const autoSyncRow = document.createElement('div');
+  autoSyncRow.className = 'git-auto-sync-row';
+
+  const autoToggle = document.createElement('label');
+  autoToggle.className = 'git-auto-sync-toggle';
+  const autoCb = document.createElement('input');
+  autoCb.type = 'checkbox';
+  autoCb.checked = gitSettings.autoSync;
+  autoToggle.appendChild(autoCb);
+  autoToggle.appendChild(document.createTextNode(' Auto-sync'));
+
+  const intervalWrap = document.createElement('div');
+  intervalWrap.className = 'git-auto-sync-interval';
+  intervalWrap.appendChild(document.createTextNode('every '));
+  const intervalSelect = document.createElement('select');
+  [5, 10, 15, 30].forEach(min => {
+    const opt = document.createElement('option');
+    opt.value = min * 60000;
+    opt.textContent = min === 5 ? '5 min' : min === 10 ? '10 min' : min === 15 ? '15 min' : '30 min';
+    if (gitSettings.syncInterval === min * 60000) opt.selected = true;
+    intervalSelect.appendChild(opt);
+  });
+  intervalWrap.appendChild(intervalSelect);
+  autoSyncRow.appendChild(autoToggle);
+  autoSyncRow.appendChild(intervalWrap);
+  box.appendChild(autoSyncRow);
+
+  /* Connection fields */
+  function makeField(labelText, type, value) {
+    const row = document.createElement('div');
+    row.className = 'git-field';
+    const lbl = document.createElement('span');
+    lbl.className = 'git-field-label';
+    lbl.textContent = labelText;
+    const input = document.createElement('input');
+    input.type = type;
+    input.className = 'rename-input';
+    input.value = value || '';
+    input.spellcheck = false;
+    row.appendChild(lbl);
+    row.appendChild(input);
+    return { row, input, lbl };
+  }
+
+  function makeSelect(labelText) {
+    const row = document.createElement('div');
+    row.className = 'git-field';
+    const lbl = document.createElement('span');
+    lbl.className = 'git-field-label';
+    lbl.textContent = labelText;
+    const select = document.createElement('select');
+    select.className = 'rename-input';
+    row.appendChild(lbl);
+    row.appendChild(select);
+    return { row, select, input: select, lbl };
+  }
+
+  const TOKEN_URLS = {
+    github: 'https://github.com/settings/tokens',
+    gitlab: 'https://gitlab.com/-/user_settings/personal_access_tokens',
+    gitea: 'https://{host}/user/settings/applications',
+  };
+
+  function getTokenUrl(provider, host) {
+    if (provider === 'custom') return '';
+    const tpl = TOKEN_URLS[provider] || '';
+    return tpl.replace('{host}', host || '');
+  }
+
+  const gitProviderRow = makeSelect('Provider');
+  gitProviderRow.select.innerHTML = `
+    <option value="github" ${gitSettings.provider === 'github' ? 'selected' : ''}>GitHub</option>
+    <option value="gitlab" ${gitSettings.provider === 'gitlab' ? 'selected' : ''}>GitLab</option>
+    <option value="gitea" ${gitSettings.provider === 'gitea' ? 'selected' : ''}>Gitea</option>
+    <option value="custom" ${gitSettings.provider === 'custom' ? 'selected' : ''}>Custom</option>
+  `;
+
+  const gitHostRow = makeField('Host', 'text', gitSettings.host);
+  gitHostRow.input.placeholder = 'api.github.com';
+  gitHostRow.row.style.display = gitSettings.provider === 'gitea' || gitSettings.provider === 'custom' ? 'flex' : 'none';
+
+  gitProviderRow.select.addEventListener('change', () => {
+    const val = gitProviderRow.select.value;
+    gitHostRow.row.style.display = val === 'gitea' || val === 'custom' ? 'flex' : 'none';
+    const url = getTokenUrl(val, gitHostRow.input.value.trim());
+    tokenHelpEl.style.display = url ? 'flex' : 'none';
+    tokenHelpEl.dataset.url = url;
+  });
+
+  const gitOwnerRow = makeField('Owner', 'text', gitSettings.owner);
+  gitOwnerRow.input.placeholder = 'username';
+
+  const gitRepoRow = makeField('Repo', 'text', gitSettings.repo);
+  gitRepoRow.input.placeholder = 'my-notes';
+
+  /* Token row with helper link */
+  const gitTokenRow = makeField('Token', 'password', gitSettings.token);
+  const tokenWrap = document.createElement('div');
+  tokenWrap.className = 'git-token-wrap';
+  gitTokenRow.input.parentNode.replaceChild(tokenWrap, gitTokenRow.input);
+  tokenWrap.appendChild(gitTokenRow.input);
+  const tokenHelpEl = document.createElement('button');
+  tokenHelpEl.className = 'git-token-help';
+  tokenHelpEl.textContent = '?';
+  tokenHelpEl.title = 'Create a token';
+  const initUrl = getTokenUrl(gitSettings.provider, gitSettings.host);
+  tokenHelpEl.style.display = initUrl ? 'flex' : 'none';
+  tokenHelpEl.dataset.url = initUrl;
+  tokenHelpEl.addEventListener('click', () => {
+    if (tokenHelpEl.dataset.url) window.open(tokenHelpEl.dataset.url, '_blank');
+  });
+  tokenWrap.appendChild(tokenHelpEl);
+
+  const gitBranchRow = makeField('Branch', 'text', gitSettings.branch);
+  gitBranchRow.input.placeholder = 'main';
+
+  const gitFolderRow = makeField('Sync folder', 'text', gitSettings.folder);
+  gitFolderRow.input.placeholder = 'notes/';
+
+  /* Advanced section (Author) */
+  const advancedToggle = document.createElement('button');
+  advancedToggle.className = 'git-advanced-toggle';
+  advancedToggle.textContent = '\u25B6 Author info (optional)';
+  let advancedOpen = false;
+
+  const advancedWrap = document.createElement('div');
+  advancedWrap.style.display = 'none';
+
+  const gitAuthorRow = makeField('Author name', 'text', gitSettings.authorName);
+  const gitEmailRow = makeField('Author email', 'text', gitSettings.authorEmail);
+  advancedWrap.appendChild(gitAuthorRow.row);
+  advancedWrap.appendChild(gitEmailRow.row);
+
+  advancedToggle.addEventListener('click', () => {
+    advancedOpen = !advancedOpen;
+    advancedWrap.style.display = advancedOpen ? 'block' : 'none';
+    advancedToggle.textContent = advancedOpen ? '\u25BC Author info (optional)' : '\u25B6 Author info (optional)';
+  });
+
+  /* Status */
+  const gitStatusRow = document.createElement('div');
+  gitStatusRow.className = 'git-status-row';
+  const statusDot = document.createElement('span');
+  statusDot.className = 'git-status-dot unknown';
+  const statusText = document.createElement('span');
+  gitStatusRow.appendChild(statusDot);
+  gitStatusRow.appendChild(statusText);
+
+  if (gitSettings.lastSyncStatus) {
+    statusDot.className = 'git-status-dot connected';
+    statusText.textContent = gitSettings.lastSyncAt
+      ? `Last sync: ${new Date(gitSettings.lastSyncAt).toLocaleString()} — ${gitSettings.lastSyncStatus}`
+      : gitSettings.lastSyncStatus;
+  } else {
+    statusText.textContent = 'Not yet synced';
+  }
+
+  function updateStatus(msg, type) {
+    statusText.textContent = msg;
+    statusDot.className = 'git-status-dot ' + type;
+  }
+
+  /* Buttons */
+  const gitBtnRow = document.createElement('div');
+  gitBtnRow.className = 'git-btn-row';
+
+  function makeGitBtn(text) {
+    const btn = document.createElement('button');
+    btn.className = 'git-btn';
+    btn.textContent = text;
+    return btn;
+  }
+
+  const testBtn = makeGitBtn('Test');
+  testBtn.addEventListener('click', async () => {
+    testBtn.disabled = true;
+    testBtn.textContent = 'Testing...';
+    saveGitSection();
+    try {
+      await testGitConnection();
+      updateStatus('Connection OK', 'connected');
+    } catch (e) {
+      updateStatus('Connection failed: ' + e.message, 'error');
+    }
+    testBtn.disabled = false;
+    testBtn.textContent = 'Test';
+  });
+
+  const pullBtn = makeGitBtn('Pull');
+  pullBtn.addEventListener('click', async () => {
+    pullBtn.disabled = true;
+    pushBtn.disabled = true;
+    testBtn.disabled = true;
+    updateStatus('Pulling...', 'unknown');
+    saveGitSection();
+    try {
+      const r = await pullFromRemote((msg) => { statusText.textContent = msg; });
+      updateStatus(`Pulled ${r.synced} files`, 'connected');
+      setContent(state.content);
+      scheduleRender(state.content);
+    } catch (e) {
+      updateStatus('Pull failed: ' + e.message, 'error');
+    }
+    pullBtn.textContent = 'Pull';
+    pullBtn.disabled = false;
+    pushBtn.disabled = false;
+    testBtn.disabled = false;
+  });
+
+  const pushBtn = makeGitBtn('Push');
+  pushBtn.addEventListener('click', async () => {
+    pushBtn.disabled = true;
+    pullBtn.disabled = true;
+    testBtn.disabled = true;
+    updateStatus('Pushing...', 'unknown');
+    saveGitSection();
+    try {
+      const r = await pushToRemote((msg) => { statusText.textContent = msg; });
+      if (r.conflicts && r.conflicts.length > 0) {
+        const fileNames = r.conflicts.map(c => c.fileName);
+        const choice = await showConflictModal(fileNames);
+        if (choice === 'remote') {
+          for (const c of r.conflicts) {
+            if (c.remoteContent !== null) {
+              await saveFile(c.fileName, c.remoteContent);
+              state.fileContents.set(c.fileName, c.remoteContent);
+              if (c.fileName === state.filename) {
+                setContent(c.remoteContent);
+                setStateContent(c.remoteContent);
+              }
+            }
+          }
+          updateStatus('Conflicts resolved — pulled remote', 'connected');
+        } else {
+          const shaMap = getRemoteShaMap();
+          for (const c of r.conflicts) {
+            if (c.remoteSha) shaMap[c.fileName] = c.remoteSha;
+          }
+          setRemoteShaMap(shaMap);
+          const retry = await pushToRemote((msg) => { statusText.textContent = msg; }, fileNames);
+          updateStatus(`Pushed ${retry.pushed} files (conflicts resolved)`, 'connected');
+        }
+      } else {
+        updateStatus(`Pushed ${r.pushed} files`, 'connected');
+      }
+    } catch (e) {
+      updateStatus('Push failed: ' + e.message, 'error');
+    }
+    pushBtn.textContent = 'Push';
+    pushBtn.disabled = false;
+    pullBtn.disabled = false;
+    testBtn.disabled = false;
+  });
+
+  gitBtnRow.appendChild(testBtn);
+  gitBtnRow.appendChild(pullBtn);
+  gitBtnRow.appendChild(pushBtn);
+
+  box.appendChild(gitProviderRow.row);
+  box.appendChild(gitHostRow.row);
+  box.appendChild(gitOwnerRow.row);
+  box.appendChild(gitRepoRow.row);
+  box.appendChild(gitTokenRow.row);
+  box.appendChild(gitBranchRow.row);
+  box.appendChild(gitFolderRow.row);
+  box.appendChild(advancedToggle);
+  box.appendChild(advancedWrap);
+  box.appendChild(gitBtnRow);
+  box.appendChild(gitStatusRow);
+
+  /* Save/Close buttons */
+  const buttons = document.createElement('div');
+  buttons.className = 'rename-buttons';
+
+  const saveBtn = document.createElement('button');
+  saveBtn.className = 'rename-btn-primary';
+  saveBtn.textContent = 'Save';
+
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'rename-btn-secondary';
+  closeBtn.textContent = 'Close';
+
+  buttons.appendChild(saveBtn);
+  buttons.appendChild(closeBtn);
+  box.appendChild(buttons);
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+
+  function saveGitSection() {
+    saveGitSettings({
+      provider: gitProviderRow.select.value,
+      host: gitHostRow.input.value.trim(),
+      owner: gitOwnerRow.input.value.trim(),
+      repo: gitRepoRow.input.value.trim(),
+      token: gitTokenRow.input.value.trim(),
+      branch: gitBranchRow.input.value.trim() || 'main',
+      folder: gitFolderRow.input.value.trim() || 'notes/',
+      authorName: gitAuthorRow.input.value.trim(),
+      authorEmail: gitEmailRow.input.value.trim(),
+      autoSync: autoCb.checked,
+      syncInterval: parseInt(intervalSelect.value),
+    });
+  }
+
+  saveBtn.addEventListener('click', () => {
+    saveGitSection();
+    overlay.remove();
+    window.dispatchEvent(new CustomEvent('git-settings-changed'));
+  });
+  closeBtn.addEventListener('click', () => overlay.remove());
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) overlay.remove();
+  });
 }
 
 function showExportModal() {

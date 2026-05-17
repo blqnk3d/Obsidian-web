@@ -943,3 +943,302 @@ select.rename-input {
   color: var(--accent);
   background: var(--bg-surface);
 }
+
+/* ── Sync indicator (topbar) ── */
+#sync-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 2px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: color 0.2s, background 0.2s;
+}
+#sync-indicator:hover {
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+}
+#sync-indicator .sync-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background 0.3s;
+}
+.sync-dot.synced   { background: #4caf50; }
+.sync-dot.syncing  { background: #ffa726; }
+.sync-dot.error    { background: #f14c4c; }
+.sync-dot.off      { background: var(--text-muted); }
+
+/* ── Git section (settings modal) ── */
+.git-section {
+  border-top: 1px solid var(--border);
+  margin-top: 14px;
+  padding-top: 12px;
+}
+.git-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.git-field-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  min-width: 80px;
+  flex-shrink: 0;
+}
+.git-field .rename-input {
+  flex: 1;
+  font-size: 12px;
+  padding: 3px 6px;
+}
+.git-field select.rename-input {
+  font-size: 12px;
+  padding: 3px 6px;
+}
+
+.git-token-wrap {
+  display: flex;
+  flex: 1;
+  gap: 4px;
+}
+.git-token-wrap .rename-input {
+  flex: 1;
+}
+.git-token-help {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-family: var(--font-ui);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, border-color 0.15s;
+  line-height: 1;
+}
+.git-token-help:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.git-status-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+.git-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.git-status-dot.connected    { background: #4caf50; }
+.git-status-dot.error        { background: #f14c4c; }
+.git-status-dot.unknown      { background: var(--text-muted); }
+
+.git-btn-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.git-btn {
+  flex: 1;
+  padding: 4px 10px;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+  font-family: var(--font-ui);
+}
+.git-btn:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+  border-color: var(--accent);
+}
+.git-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.git-advanced-toggle {
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-family: var(--font-ui);
+  padding: 2px 0;
+  margin-bottom: 4px;
+  transition: color 0.15s;
+}
+.git-advanced-toggle:hover {
+  color: var(--text-secondary);
+}
+
+.git-auto-sync-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.git-auto-sync-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+.git-auto-sync-toggle input[type="checkbox"] {
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.git-auto-sync-interval {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-left: auto;
+}
+.git-auto-sync-interval select {
+  font-size: 11px;
+  padding: 2px 4px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  border-radius: 3px;
+  font-family: var(--font-ui);
+}
+
+/* ── Toast notifications ── */
+.toast-container {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 6px;
+  pointer-events: none;
+}
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: var(--font-ui);
+  line-height: 1.4;
+  max-width: 320px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  border: 1px solid var(--border);
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.toast-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.toast-success {
+  background: #1b3d1b;
+  color: #a5d6a7;
+  border-color: #2e7d32;
+}
+.toast-error {
+  background: #3d1b1b;
+  color: #ef9a9a;
+  border-color: #c62828;
+}
+.toast-info {
+  background: #1b2a3d;
+  color: #90caf9;
+  border-color: #1565c0;
+}
+.toast-close {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 14px;
+  opacity: 0.6;
+  padding: 0 2px;
+  margin-left: auto;
+  flex-shrink: 0;
+  font-family: var(--font-ui);
+}
+.toast-close:hover {
+  opacity: 1;
+}
+
+/* ── Conflict overlay ── */
+.conflict-overlay .rename-box {
+  min-width: 380px;
+}
+.conflict-list {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 8px 0 12px;
+  line-height: 1.6;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.conflict-list li {
+  margin: 2px 0;
+  padding: 2px 6px;
+  background: var(--bg-tertiary);
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.conflict-buttons {
+  display: flex;
+  gap: 8px;
+}
+.conflict-btn {
+  flex: 1;
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font-family: var(--font-ui);
+  transition: background 0.15s, border-color 0.15s;
+}
+.conflict-btn-local {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+.conflict-btn-local:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--accent);
+}
+.conflict-btn-remote {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.conflict-btn-remote:hover {
+  background: var(--accent-hover);
+}

@@ -3,6 +3,17 @@ export const SETTINGS_KEY = 'obsidian-web-settings';
 const DEFAULTS = {
   imageNaming: 'date-index',
   fontSize: 14,
+  gitProvider: 'github',
+  gitHost: '',
+  gitOwner: '',
+  gitRepo: '',
+  gitToken: '',
+  gitBranch: 'main',
+  gitFolder: 'notes/',
+  gitAuthorName: '',
+  gitAuthorEmail: '',
+  gitLastSyncAt: null,
+  gitLastSyncStatus: '',
 };
 
 export function getSettings() {
