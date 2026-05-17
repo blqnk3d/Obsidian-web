@@ -1,8 +1,9 @@
 import { storeImage, importVault, exportVault, save, deleteImage, renameFile, clearStore, nextUntitledName, saveFile } from '../core/storage.js';
-import { insertAtCursor, setContent as setEditorContent, wrapSelection, insertLinePrefix, insertTemplate, insertTable, SNIPPET_TEMPLATES } from './editor.js';
+import { insertAtCursor, setContent, wrapSelection, insertLinePrefix, insertTemplate, insertTable, SNIPPET_TEMPLATES } from './editor.js';
 import { scheduleRender } from '../render/preview.js';
-import { setFilename, setContent, state, on, addImage } from '../core/state.js';
+import { setFilename, setContent as setStateContent, state, on, addImage } from '../core/state.js';
 import { getSettings, updateSettings, SETTINGS_KEY } from '../core/settings.js';
+import { pullFromRemote, pushToRemote, testGitConnection, getGitSettings, saveGitSettings } from '../core/git.js';
 import { makeDraggable } from './drag.js';
 import { createPromptModal } from './modal.js';
 
@@ -329,6 +330,186 @@ function showSettingsModal() {
   fontSizeDiv.appendChild(fontSizeLabel);
   fontSizeDiv.appendChild(fontSizeRow);
 
+  /* ── Git sync ── */
+  const gitSettings = getGitSettings();
+
+  const gitDiv = document.createElement('div');
+  gitDiv.style.cssText = 'border-top:1px solid var(--border);margin-top:14px;padding-top:12px;';
+
+  const gitLabel = document.createElement('div');
+  gitLabel.className = 'rename-label';
+  gitLabel.textContent = 'Git Sync';
+  gitLabel.style.marginBottom = '8px';
+
+  const gitProviderRow = createInputRow('Provider', 'select');
+  gitProviderRow.select.innerHTML = `
+    <option value="github" ${gitSettings.provider === 'github' ? 'selected' : ''}>GitHub</option>
+    <option value="gitlab" ${gitSettings.provider === 'gitlab' ? 'selected' : ''}>GitLab</option>
+    <option value="gitea" ${gitSettings.provider === 'gitea' ? 'selected' : ''}>Gitea</option>
+    <option value="custom" ${gitSettings.provider === 'custom' ? 'selected' : ''}>Custom</option>
+  `;
+
+  const gitHostRow = createInputRow('Host', 'text', gitSettings.host);
+  gitHostRow.input.placeholder = 'api.github.com';
+  gitHostRow.row.style.display = gitSettings.provider === 'gitea' || gitSettings.provider === 'custom' ? 'flex' : 'none';
+
+  gitProviderRow.select.addEventListener('change', () => {
+    const val = gitProviderRow.select.value;
+    gitHostRow.row.style.display = val === 'gitea' || val === 'custom' ? 'flex' : 'none';
+  });
+
+  const gitOwnerRow = createInputRow('Owner', 'text', gitSettings.owner);
+  gitOwnerRow.input.placeholder = 'username';
+
+  const gitRepoRow = createInputRow('Repo', 'text', gitSettings.repo);
+  gitRepoRow.input.placeholder = 'my-notes';
+
+  const gitTokenRow = createInputRow('Token', 'password', gitSettings.token);
+
+  const gitBranchRow = createInputRow('Branch', 'text', gitSettings.branch);
+  gitBranchRow.input.placeholder = 'main';
+
+  const gitFolderRow = createInputRow('Sync folder', 'text', gitSettings.folder);
+  gitFolderRow.input.placeholder = 'notes/';
+
+  const gitAuthorRow = createInputRow('Author name', 'text', gitSettings.authorName);
+  const gitEmailRow = createInputRow('Author email', 'text', gitSettings.authorEmail);
+
+  const gitStatusRow = document.createElement('div');
+  gitStatusRow.style.cssText = 'font-size:12px;color:var(--text-muted);margin-top:4px;';
+  if (gitSettings.lastSyncStatus) {
+    gitStatusRow.textContent = gitSettings.lastSyncAt
+      ? `Last sync: ${new Date(gitSettings.lastSyncAt).toLocaleString()} — ${gitSettings.lastSyncStatus}`
+      : gitSettings.lastSyncStatus;
+  } else {
+    gitStatusRow.textContent = 'Not yet synced';
+  }
+
+  const gitBtnRow = document.createElement('div');
+  gitBtnRow.style.cssText = 'display:flex;gap:8px;margin-top:8px;';
+
+  const testBtn = document.createElement('button');
+  testBtn.textContent = 'Test';
+  testBtn.style.cssText = 'padding:4px 10px;font-size:12px;border:1px solid var(--border);border-radius:4px;background:var(--bg-surface);color:var(--text-primary);cursor:pointer;flex:1;';
+  testBtn.addEventListener('click', async () => {
+    testBtn.disabled = true;
+    testBtn.textContent = 'Testing...';
+    saveGitSection();
+    try {
+      await testGitConnection();
+      gitStatusRow.textContent = 'Connection OK';
+      gitStatusRow.style.color = 'var(--text-muted)';
+    } catch (e) {
+      gitStatusRow.textContent = 'Connection failed: ' + e.message;
+      gitStatusRow.style.color = '#f14c4c';
+    }
+    testBtn.disabled = false;
+    testBtn.textContent = 'Test';
+  });
+
+  const pullBtn = document.createElement('button');
+  pullBtn.textContent = 'Pull';
+  pullBtn.style.cssText = 'padding:4px 10px;font-size:12px;border:1px solid var(--border);border-radius:4px;background:var(--bg-surface);color:var(--text-primary);cursor:pointer;flex:1;';
+  pullBtn.addEventListener('click', async () => {
+    pullBtn.disabled = true;
+    pushBtn.disabled = true;
+    testBtn.disabled = true;
+    gitStatusRow.style.color = 'var(--text-muted)';
+    pullBtn.textContent = 'Pulling...';
+    saveGitSection();
+    try {
+      const r = await pullFromRemote((msg) => { gitStatusRow.textContent = msg; });
+      gitStatusRow.textContent = `Pulled ${r.synced} files`;
+      setContent(state.content);
+      scheduleRender(state.content);
+    } catch (e) {
+      gitStatusRow.textContent = 'Pull failed: ' + e.message;
+      gitStatusRow.style.color = '#f14c4c';
+    }
+    pullBtn.textContent = 'Pull';
+    pullBtn.disabled = false;
+    pushBtn.disabled = false;
+    testBtn.disabled = false;
+  });
+
+  const pushBtn = document.createElement('button');
+  pushBtn.textContent = 'Push';
+  pushBtn.style.cssText = 'padding:4px 10px;font-size:12px;border:1px solid var(--border);border-radius:4px;background:var(--bg-surface);color:var(--text-primary);cursor:pointer;flex:1;';
+  pushBtn.addEventListener('click', async () => {
+    pushBtn.disabled = true;
+    pullBtn.disabled = true;
+    testBtn.disabled = true;
+    gitStatusRow.style.color = 'var(--text-muted)';
+    pushBtn.textContent = 'Pushing...';
+    saveGitSection();
+    try {
+      const r = await pushToRemote((msg) => { gitStatusRow.textContent = msg; });
+      gitStatusRow.textContent = `Pushed ${r.pushed} files`;
+    } catch (e) {
+      gitStatusRow.textContent = 'Push failed: ' + e.message;
+      gitStatusRow.style.color = '#f14c4c';
+    }
+    pushBtn.textContent = 'Push';
+    pushBtn.disabled = false;
+    pullBtn.disabled = false;
+    testBtn.disabled = false;
+  });
+
+  gitBtnRow.appendChild(testBtn);
+  gitBtnRow.appendChild(pullBtn);
+  gitBtnRow.appendChild(pushBtn);
+
+  gitDiv.appendChild(gitLabel);
+  gitDiv.appendChild(gitProviderRow.row);
+  gitDiv.appendChild(gitHostRow.row);
+  gitDiv.appendChild(gitOwnerRow.row);
+  gitDiv.appendChild(gitRepoRow.row);
+  gitDiv.appendChild(gitTokenRow.row);
+  gitDiv.appendChild(gitBranchRow.row);
+  gitDiv.appendChild(gitFolderRow.row);
+  gitDiv.appendChild(gitAuthorRow.row);
+  gitDiv.appendChild(gitEmailRow.row);
+  gitDiv.appendChild(gitBtnRow);
+  gitDiv.appendChild(gitStatusRow);
+
+  function saveGitSection() {
+    saveGitSettings({
+      provider: gitProviderRow.select.value,
+      host: gitHostRow.input.value.trim(),
+      owner: gitOwnerRow.input.value.trim(),
+      repo: gitRepoRow.input.value.trim(),
+      token: gitTokenRow.input.value.trim(),
+      branch: gitBranchRow.input.value.trim() || 'main',
+      folder: gitFolderRow.input.value.trim() || 'notes/',
+      authorName: gitAuthorRow.input.value.trim(),
+      authorEmail: gitEmailRow.input.value.trim(),
+    });
+  }
+
+  function createInputRow(labelText, type, value) {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:4px;';
+    const lbl = document.createElement('span');
+    lbl.style.cssText = 'font-size:12px;color:var(--text-secondary);min-width:80px;flex-shrink:0;';
+    lbl.textContent = labelText;
+    let input;
+    if (type === 'select') {
+      input = document.createElement('select');
+      input.className = 'rename-input';
+      input.style.cssText = 'flex:1;font-size:12px;padding:3px 6px;';
+    } else {
+      input = document.createElement('input');
+      input.type = type + '' === type ? type : 'text';
+      input.className = 'rename-input';
+      input.value = value || '';
+      input.style.cssText = 'flex:1;font-size:12px;padding:3px 6px;';
+      input.spellcheck = false;
+    }
+    row.appendChild(lbl);
+    row.appendChild(input);
+    return { row, input, lbl, select: input };
+  }
+
   /* ── Storage section ── */
   const storageDiv = document.createElement('div');
   storageDiv.style.cssText = 'border-top:1px solid var(--border);margin-top:14px;padding-top:12px;';
@@ -397,8 +578,8 @@ function showSettingsModal() {
     state.fileContents.set(name, '');
     state.files.push({ name, updated_at: new Date().toISOString() });
     setFilename(name);
-    setEditorContent('');
     setContent('');
+    setStateContent('');
     scheduleRender('');
     await saveFile(name, '');
     overlay.remove();
@@ -423,6 +604,7 @@ function showSettingsModal() {
   box.appendChild(select);
   box.appendChild(hint);
   box.appendChild(fontSizeDiv);
+  box.appendChild(gitDiv);
   box.appendChild(storageDiv);
   box.appendChild(buttons);
   overlay.appendChild(box);
@@ -431,6 +613,7 @@ function showSettingsModal() {
   saveBtn.addEventListener('click', () => {
     updateSettings({ imageNaming: select.value, fontSize: parseInt(sizeSlider.value) });
     applyFontSize(parseInt(sizeSlider.value));
+    saveGitSection();
     overlay.remove();
   });
   closeBtn.addEventListener('click', () => overlay.remove());
