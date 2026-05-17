@@ -569,7 +569,11 @@ export async function pushToRemote(onProgress, filesToPush) {
     for (const fileName of Object.keys(shaMap)) {
       if (!state.fileContents.has(fileName)) {
         onProgress?.(`Deleting ${fileName}...`);
-        await deleteRemoteFile(settings, fileName, `Delete ${fileName}`, shaMap[fileName]);
+        try {
+          await deleteRemoteFile(settings, fileName, `Delete ${fileName}`, shaMap[fileName]);
+        } catch (e) {
+          if (!e.message.includes('404')) throw e;
+        }
         delete newShaMap[fileName];
       }
     }
@@ -580,7 +584,11 @@ export async function pushToRemote(onProgress, filesToPush) {
         if (!state.images.has(imgName)) {
           const imgRelPath = 'images/' + imgName;
           onProgress?.(`Deleting ${imgName}...`);
-          await deleteRemoteFile(settings, imgRelPath, `Delete ${imgName}`, shaMap[key]);
+          try {
+            await deleteRemoteFile(settings, imgRelPath, `Delete ${imgName}`, shaMap[key]);
+          } catch (e) {
+            if (!e.message.includes('404')) throw e;
+          }
           delete newShaMap[key];
         }
       }
