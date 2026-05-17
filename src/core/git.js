@@ -100,14 +100,18 @@ export function setRemoteShaMap(map) {
 
 export function markDirty(fileName) {
   dirtyFiles.add(fileName);
+  console.log('[git] markDirty("' + fileName + '") size=' + dirtyFiles.size);
 }
 
 export function clearDirty() {
+  console.log('[git] clearDirty() — cleared ' + dirtyFiles.size + ' file(s)');
   dirtyFiles.clear();
 }
 
 export function getDirtyFiles() {
-  return new Set(dirtyFiles);
+  const copy = new Set(dirtyFiles);
+  console.log('[git] getDirtyFiles() → ' + copy.size + ' file(s)');
+  return copy;
 }
 
 function buildApiUrl(settings) {

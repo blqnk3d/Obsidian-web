@@ -3,7 +3,7 @@ import { state, setContent, setFilename, on } from './core/state.js';
 import { initParser } from './parser/config.js';
 import { initPreview, scheduleRender } from './render/preview.js';
 import { initEditor, setContent as setEditorContent, searchAndJump } from './ui/editor.js';
-import { initHandlers, showConflictModal } from './ui/handlers.js';
+import { initHandlers, showConflictModal, showGitSettingsModal } from './ui/handlers.js';
 import { initSidebar } from './ui/sidebar.js';
 import { makeDraggable } from './ui/drag.js';
 import { createPromptModal } from './ui/modal.js';
@@ -51,14 +51,18 @@ async function init() {
   promptRenameUntitled();
 
   window.addEventListener('git-settings-changed', () => {
+    console.log('[auto-sync] git-settings-changed event received');
     scheduleAutoSync();
   });
 
   /* Auto-sync */
+  console.log('[auto-sync] init: calling scheduleAutoSync()');
   scheduleAutoSync();
 
   const git = getGitSettings();
+  console.log('[auto-sync] init: git settings', { owner: git.owner, repo: git.repo, hasToken: !!git.token, autoSync: git.autoSync });
   if (git.owner && git.repo && git.token && git.autoSync) {
+    console.log('[auto-sync] init: triggering autoPull()');
     autoPull().catch(() => {});
   }
 }
@@ -73,7 +77,7 @@ function initSyncIndicator() {
   el.title = 'Click to open settings';
   el.innerHTML = '<span class="sync-dot off"></span><span class="sync-text">Sync</span>';
   el.addEventListener('click', () => {
-    document.getElementById('settings-btn')?.click();
+    showGitSettingsModal();
   });
   topbar.insertBefore(el, settingsBtn);
 }
@@ -91,7 +95,12 @@ function updateSyncIndicator(status, msg) {
 function scheduleAutoSync() {
   if (syncIntervalId) { clearInterval(syncIntervalId); syncIntervalId = null; }
   const git = getGitSettings();
-  if (!git.autoSync || !git.owner || !git.repo || !git.token) return;
+  console.log('[auto-sync] scheduleAutoSync: autoSync=' + git.autoSync + ' owner="' + git.owner + '" repo="' + git.repo + '" hasToken=' + !!git.token);
+  if (!git.autoSync) { console.log('[auto-sync] scheduleAutoSync: bailing — autoSync disabled'); return; }
+  if (!git.owner) { console.log('[auto-sync] scheduleAutoSync: bailing — owner empty'); return; }
+  if (!git.repo) { console.log('[auto-sync] scheduleAutoSync: bailing — repo empty'); return; }
+  if (!git.token) { console.log('[auto-sync] scheduleAutoSync: bailing — token empty'); return; }
+  console.log('[auto-sync] scheduleAutoSync: starting interval at ' + (git.syncInterval / 1000) + 's');
   syncIntervalId = setInterval(() => {
     autoPush().catch(() => {});
   }, git.syncInterval);
@@ -99,30 +108,44 @@ function scheduleAutoSync() {
 
 async function autoPull() {
   const git = getGitSettings();
-  if (!git.owner || !git.repo || !git.token || !git.autoSync) return;
+  if (!git.owner || !git.repo || !git.token || !git.autoSync) {
+    console.log('[auto-sync] autoPull: bailing — config incomplete');
+    return;
+  }
 
+  console.log('[auto-sync] autoPull: starting pull');
   updateSyncIndicator('syncing', 'Syncing...');
   try {
     const result = await pullFromRemote((msg) => {
       const el = document.getElementById('sync-indicator');
       if (el) el.querySelector('.sync-text').textContent = msg;
     });
+    console.log('[auto-sync] autoPull: done, synced=' + result.synced + ' files=' + JSON.stringify(result.files));
     updateSyncIndicator('synced', 'Synced');
     if (result.synced > 0) {
       showToast(`Pulled ${result.synced} file(s)`, 'info', 2000);
     }
   } catch (e) {
+    console.log('[auto-sync] autoPull: failed — ' + e.message);
     updateSyncIndicator('synced', 'Synced');
   }
 }
 
 async function autoPush() {
   const git = getGitSettings();
-  if (!git.owner || !git.repo || !git.token || !git.autoSync) return;
+  if (!git.owner || !git.repo || !git.token || !git.autoSync) {
+    console.log('[auto-sync] autoPush: bailing — config incomplete');
+    return;
+  }
 
   const dirty = getDirtyFiles();
-  if (dirty.size === 0) return;
+  console.log('[auto-sync] autoPush: dirty files count=' + dirty.size + ' files=' + JSON.stringify([...dirty]));
+  if (dirty.size === 0) {
+    console.log('[auto-sync] autoPush: nothing dirty, skipping');
+    return;
+  }
 
+  console.log('[auto-sync] autoPush: pushing ' + dirty.size + ' dirty files');
   updateSyncIndicator('syncing', 'Syncing...');
   try {
     const r = await pushToRemote(
@@ -132,11 +155,13 @@ async function autoPush() {
       },
       [...dirty]
     );
+    console.log('[auto-sync] autoPush: pushed ' + r.pushed + ' files');
     updateSyncIndicator('synced', 'Synced');
     if (r.pushed > 0) {
       showToast(`Pushed ${r.pushed} file(s)`, 'success', 2000);
     }
   } catch (e) {
+    console.log('[auto-sync] autoPush: failed — ' + e.message);
     updateSyncIndicator('error', 'Sync error');
     showToast('Auto-sync failed: ' + e.message, 'error', 4000);
   }
@@ -221,6 +246,7 @@ function promptRenameUntitled() {
 
 function handleEditorChange(content) {
   setContent(content);
+  console.log('[auto-sync] markDirty("' + state.filename + '") from handleEditorChange');
   markDirty(state.filename);
 }
 

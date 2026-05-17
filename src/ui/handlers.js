@@ -378,16 +378,136 @@ function showSettingsModal() {
   fontSizeDiv.appendChild(fontSizeLabel);
   fontSizeDiv.appendChild(fontSizeRow);
 
-  /* ── Git sync ── */
+  /* ── Storage section ── */
+  const storageDiv = document.createElement('div');
+  storageDiv.style.cssText = 'border-top:1px solid var(--border);margin-top:14px;padding-top:12px;';
+
+  const storageLabel = document.createElement('div');
+  storageLabel.className = 'rename-label';
+  storageLabel.textContent = 'Storage';
+  storageLabel.style.marginBottom = '8px';
+
+  const storageRows = document.createElement('div');
+  storageRows.style.cssText = 'font-size:12px;color:var(--text-secondary);line-height:1.7;';
+
+  const notesCount = state.files.length;
+  const imgCount = state.images.size;
+  let imgBytes = 0;
+  for (const data of state.images.values()) {
+    imgBytes += Math.round(data.length * 0.75);
+  }
+  const fmtSize = (bytes) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
+  storageRows.innerHTML = `
+    <div>Notes: ${notesCount}</div>
+    <div>Images: ${imgCount} (${fmtSize(imgBytes)} actual)</div>
+    <div id="storage-browser-line">Browser quota: loading…</div>
+  `;
+
+  const barOuter = document.createElement('div');
+  barOuter.style.cssText = 'height:4px;background:var(--bg-tertiary);border-radius:2px;margin-top:6px;overflow:hidden;';
+  const barInner = document.createElement('div');
+  barInner.id = 'storage-bar';
+  barInner.style.cssText = 'height:100%;width:0;background:var(--accent);border-radius:2px;transition:width 0.3s;';
+  barOuter.appendChild(barInner);
+
+  storageDiv.appendChild(storageLabel);
+  storageDiv.appendChild(storageRows);
+  storageDiv.appendChild(barOuter);
+
+  navigator.storage?.estimate().then(({ usage, quota }) => {
+    const pct = Math.min(100, Math.round((usage / quota) * 100));
+    const el = document.getElementById('storage-browser-line');
+    const bar = document.getElementById('storage-bar');
+    if (el) el.textContent = `Browser: ${fmtSize(usage)} / ${fmtSize(quota)} (${pct}%)`;
+    if (bar) bar.style.width = pct + '%';
+  }).catch(() => {
+    const el = document.getElementById('storage-browser-line');
+    if (el) el.textContent = 'Browser quota: not available';
+  });
+
+  const clearBtn = document.createElement('button');
+  clearBtn.textContent = 'Clear all data';
+  clearBtn.style.cssText = 'margin-top:14px;padding:6px 12px;font-size:12px;border:1px solid var(--accent);border-radius:4px;background:transparent;color:var(--accent);cursor:pointer;width:100%;';
+  clearBtn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    if (!confirm('Permanently delete all notes and images?')) return;
+    await clearStore('files');
+    state.images.clear();
+    await clearStore('images');
+    state.fileContents.clear();
+    state.files = [];
+    localStorage.removeItem(SETTINGS_KEY);
+    const name = nextUntitledName();
+    state.fileContents.set(name, '');
+    state.files.push({ name, updated_at: new Date().toISOString() });
+    setFilename(name);
+    setContent('');
+    setStateContent('');
+    scheduleRender('');
+    await saveFile(name, '');
+    overlay.remove();
+  });
+  storageDiv.appendChild(clearBtn);
+
+  const buttons = document.createElement('div');
+  buttons.className = 'rename-buttons';
+
+  const saveBtn = document.createElement('button');
+  saveBtn.className = 'rename-btn-primary';
+  saveBtn.textContent = 'Save';
+
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'rename-btn-secondary';
+  closeBtn.textContent = 'Close';
+
+  buttons.appendChild(saveBtn);
+  buttons.appendChild(closeBtn);
+  box.appendChild(label);
+  box.appendChild(desc);
+  box.appendChild(select);
+  box.appendChild(hint);
+  box.appendChild(fontSizeDiv);
+  box.appendChild(storageDiv);  box.appendChild(buttons);
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+
+  saveBtn.addEventListener('click', () => {
+    updateSettings({ imageNaming: select.value, fontSize: parseInt(sizeSlider.value) });
+    applyFontSize(parseInt(sizeSlider.value));
+    overlay.remove();
+  });
+  closeBtn.addEventListener('click', () => overlay.remove());
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) overlay.remove();
+  });
+}
+
+function applyFontSize(size) {
+  document.documentElement.style.setProperty('--font-size', size + 'px');
+}
+
+export function showGitSettingsModal() {
+  const existing = document.querySelector('.rename-overlay');
+  if (existing) return;
+
   const gitSettings = getGitSettings();
 
-  const gitDiv = document.createElement('div');
-  gitDiv.className = 'git-section';
+  const overlay = document.createElement('div');
+  overlay.className = 'rename-overlay';
 
-  const gitLabel = document.createElement('div');
-  gitLabel.className = 'rename-label';
-  gitLabel.textContent = 'Git Sync';
-  gitLabel.style.marginBottom = '8px';
+  const box = document.createElement('div');
+  box.className = 'rename-box settings-box';
+
+  const title = document.createElement('div');
+  title.className = 'rename-label';
+  title.textContent = 'Git Sync';
+  title.style.marginBottom = '8px';
+  box.appendChild(title);
 
   /* Auto-sync row */
   const autoSyncRow = document.createElement('div');
@@ -415,9 +535,7 @@ function showSettingsModal() {
   intervalWrap.appendChild(intervalSelect);
   autoSyncRow.appendChild(autoToggle);
   autoSyncRow.appendChild(intervalWrap);
-
-  gitDiv.appendChild(gitLabel);
-  gitDiv.appendChild(autoSyncRow);
+  box.appendChild(autoSyncRow);
 
   /* Connection fields */
   function makeField(labelText, type, value) {
@@ -624,18 +742,36 @@ function showSettingsModal() {
   gitBtnRow.appendChild(pullBtn);
   gitBtnRow.appendChild(pushBtn);
 
-  /* Append all */
-  gitDiv.appendChild(gitProviderRow.row);
-  gitDiv.appendChild(gitHostRow.row);
-  gitDiv.appendChild(gitOwnerRow.row);
-  gitDiv.appendChild(gitRepoRow.row);
-  gitDiv.appendChild(gitTokenRow.row);
-  gitDiv.appendChild(gitBranchRow.row);
-  gitDiv.appendChild(gitFolderRow.row);
-  gitDiv.appendChild(advancedToggle);
-  gitDiv.appendChild(advancedWrap);
-  gitDiv.appendChild(gitBtnRow);
-  gitDiv.appendChild(gitStatusRow);
+  box.appendChild(gitProviderRow.row);
+  box.appendChild(gitHostRow.row);
+  box.appendChild(gitOwnerRow.row);
+  box.appendChild(gitRepoRow.row);
+  box.appendChild(gitTokenRow.row);
+  box.appendChild(gitBranchRow.row);
+  box.appendChild(gitFolderRow.row);
+  box.appendChild(advancedToggle);
+  box.appendChild(advancedWrap);
+  box.appendChild(gitBtnRow);
+  box.appendChild(gitStatusRow);
+
+  /* Save/Close buttons */
+  const buttons = document.createElement('div');
+  buttons.className = 'rename-buttons';
+
+  const saveBtn = document.createElement('button');
+  saveBtn.className = 'rename-btn-primary';
+  saveBtn.textContent = 'Save';
+
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'rename-btn-secondary';
+  closeBtn.textContent = 'Close';
+
+  buttons.appendChild(saveBtn);
+  buttons.appendChild(closeBtn);
+  box.appendChild(buttons);
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
 
   function saveGitSection() {
     saveGitSettings({
@@ -653,109 +789,7 @@ function showSettingsModal() {
     });
   }
 
-  /* ── Storage section ── */
-  const storageDiv = document.createElement('div');
-  storageDiv.style.cssText = 'border-top:1px solid var(--border);margin-top:14px;padding-top:12px;';
-
-  const storageLabel = document.createElement('div');
-  storageLabel.className = 'rename-label';
-  storageLabel.textContent = 'Storage';
-  storageLabel.style.marginBottom = '8px';
-
-  const storageRows = document.createElement('div');
-  storageRows.style.cssText = 'font-size:12px;color:var(--text-secondary);line-height:1.7;';
-
-  const notesCount = state.files.length;
-  const imgCount = state.images.size;
-  let imgBytes = 0;
-  for (const data of state.images.values()) {
-    imgBytes += Math.round(data.length * 0.75);
-  }
-  const fmtSize = (bytes) => {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-  };
-
-  storageRows.innerHTML = `
-    <div>Notes: ${notesCount}</div>
-    <div>Images: ${imgCount} (${fmtSize(imgBytes)} actual)</div>
-    <div id="storage-browser-line">Browser quota: loading…</div>
-  `;
-
-  const barOuter = document.createElement('div');
-  barOuter.style.cssText = 'height:4px;background:var(--bg-tertiary);border-radius:2px;margin-top:6px;overflow:hidden;';
-  const barInner = document.createElement('div');
-  barInner.id = 'storage-bar';
-  barInner.style.cssText = 'height:100%;width:0;background:var(--accent);border-radius:2px;transition:width 0.3s;';
-  barOuter.appendChild(barInner);
-
-  storageDiv.appendChild(storageLabel);
-  storageDiv.appendChild(storageRows);
-  storageDiv.appendChild(barOuter);
-
-  navigator.storage?.estimate().then(({ usage, quota }) => {
-    const pct = Math.min(100, Math.round((usage / quota) * 100));
-    const el = document.getElementById('storage-browser-line');
-    const bar = document.getElementById('storage-bar');
-    if (el) el.textContent = `Browser: ${fmtSize(usage)} / ${fmtSize(quota)} (${pct}%)`;
-    if (bar) bar.style.width = pct + '%';
-  }).catch(() => {
-    const el = document.getElementById('storage-browser-line');
-    if (el) el.textContent = 'Browser quota: not available';
-  });
-
-  const clearBtn = document.createElement('button');
-  clearBtn.textContent = 'Clear all data';
-  clearBtn.style.cssText = 'margin-top:14px;padding:6px 12px;font-size:12px;border:1px solid var(--accent);border-radius:4px;background:transparent;color:var(--accent);cursor:pointer;width:100%;';
-  clearBtn.addEventListener('click', async (e) => {
-    e.stopPropagation();
-    if (!confirm('Permanently delete all notes and images?')) return;
-    await clearStore('files');
-    state.images.clear();
-    await clearStore('images');
-    state.fileContents.clear();
-    state.files = [];
-    localStorage.removeItem(SETTINGS_KEY);
-    const name = nextUntitledName();
-    state.fileContents.set(name, '');
-    state.files.push({ name, updated_at: new Date().toISOString() });
-    setFilename(name);
-    setContent('');
-    setStateContent('');
-    scheduleRender('');
-    await saveFile(name, '');
-    overlay.remove();
-  });
-  storageDiv.appendChild(clearBtn);
-
-  const buttons = document.createElement('div');
-  buttons.className = 'rename-buttons';
-
-  const saveBtn = document.createElement('button');
-  saveBtn.className = 'rename-btn-primary';
-  saveBtn.textContent = 'Save';
-
-  const closeBtn = document.createElement('button');
-  closeBtn.className = 'rename-btn-secondary';
-  closeBtn.textContent = 'Close';
-
-  buttons.appendChild(saveBtn);
-  buttons.appendChild(closeBtn);
-  box.appendChild(label);
-  box.appendChild(desc);
-  box.appendChild(select);
-  box.appendChild(hint);
-  box.appendChild(fontSizeDiv);
-  box.appendChild(gitDiv);
-  box.appendChild(storageDiv);
-  box.appendChild(buttons);
-  overlay.appendChild(box);
-  document.body.appendChild(overlay);
-
   saveBtn.addEventListener('click', () => {
-    updateSettings({ imageNaming: select.value, fontSize: parseInt(sizeSlider.value) });
-    applyFontSize(parseInt(sizeSlider.value));
     saveGitSection();
     overlay.remove();
     window.dispatchEvent(new CustomEvent('git-settings-changed'));
@@ -764,10 +798,6 @@ function showSettingsModal() {
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) overlay.remove();
   });
-}
-
-function applyFontSize(size) {
-  document.documentElement.style.setProperty('--font-size', size + 'px');
 }
 
 function showExportModal() {
