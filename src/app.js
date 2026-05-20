@@ -51,18 +51,14 @@ async function init() {
   promptRenameUntitled();
 
   window.addEventListener('git-settings-changed', () => {
-    console.log('[auto-sync] git-settings-changed event received');
     scheduleAutoSync();
   });
 
   /* Auto-sync */
-  console.log('[auto-sync] init: calling scheduleAutoSync()');
   scheduleAutoSync();
 
   const git = getGitSettings();
-  console.log('[auto-sync] init: git settings', { owner: git.owner, repo: git.repo, hasToken: !!git.token, autoSync: git.autoSync });
   if (git.owner && git.repo && git.token && git.autoSync) {
-    console.log('[auto-sync] init: triggering autoPull()');
     autoPull().catch(() => {});
   }
 }
@@ -95,12 +91,6 @@ function updateSyncIndicator(status, msg) {
 function scheduleAutoSync() {
   if (syncIntervalId) { clearInterval(syncIntervalId); syncIntervalId = null; }
   const git = getGitSettings();
-  console.log('[auto-sync] scheduleAutoSync: autoSync=' + git.autoSync + ' owner="' + git.owner + '" repo="' + git.repo + '" hasToken=' + !!git.token);
-  if (!git.autoSync) { console.log('[auto-sync] scheduleAutoSync: bailing — autoSync disabled'); return; }
-  if (!git.owner) { console.log('[auto-sync] scheduleAutoSync: bailing — owner empty'); return; }
-  if (!git.repo) { console.log('[auto-sync] scheduleAutoSync: bailing — repo empty'); return; }
-  if (!git.token) { console.log('[auto-sync] scheduleAutoSync: bailing — token empty'); return; }
-  console.log('[auto-sync] scheduleAutoSync: starting interval at ' + (git.syncInterval / 1000) + 's');
   syncIntervalId = setInterval(() => {
     autoPush().catch(() => {});
   }, git.syncInterval);
@@ -109,24 +99,20 @@ function scheduleAutoSync() {
 async function autoPull() {
   const git = getGitSettings();
   if (!git.owner || !git.repo || !git.token || !git.autoSync) {
-    console.log('[auto-sync] autoPull: bailing — config incomplete');
     return;
   }
 
-  console.log('[auto-sync] autoPull: starting pull');
   updateSyncIndicator('syncing', 'Syncing...');
   try {
     const result = await pullFromRemote((msg) => {
       const el = document.getElementById('sync-indicator');
       if (el) el.querySelector('.sync-text').textContent = msg;
     });
-    console.log('[auto-sync] autoPull: done, synced=' + result.synced + ' files=' + JSON.stringify(result.files));
     updateSyncIndicator('synced', 'Synced');
     if (result.synced > 0) {
       showToast(`Pulled ${result.synced} file(s)`, 'info', 2000);
     }
   } catch (e) {
-    console.log('[auto-sync] autoPull: failed — ' + e.message);
     updateSyncIndicator('synced', 'Synced');
   }
 }
@@ -134,19 +120,15 @@ async function autoPull() {
 async function autoPush() {
   const git = getGitSettings();
   if (!git.owner || !git.repo || !git.token || !git.autoSync) {
-    console.log('[auto-sync] autoPush: bailing — config incomplete');
     return;
   }
 
   const dirty = getDirtyFiles();
   const dirtyImgs = getDirtyImages();
-  console.log('[auto-sync] autoPush: dirty files count=' + dirty.size + ' files=' + JSON.stringify([...dirty]) + ' images=' + dirtyImgs.size);
   if (dirty.size === 0 && dirtyImgs.size === 0) {
-    console.log('[auto-sync] autoPush: nothing dirty, skipping');
     return;
   }
 
-  console.log('[auto-sync] autoPush: pushing ' + dirty.size + ' dirty files');
   updateSyncIndicator('syncing', 'Syncing...');
   try {
     const r = await pushToRemote(
@@ -156,7 +138,6 @@ async function autoPush() {
       },
       [...dirty]
     );
-    console.log('[auto-sync] autoPush: pushed ' + r.pushed + ' files conflicts=' + (r.conflicts?.length || 0));
     updateSyncIndicator('synced', 'Synced');
     if (r.conflicts && r.conflicts.length > 0) {
       showToast(`Conflict on ${r.conflicts.map(c => c.fileName).join(', ')} — open Git settings to resolve`, 'error', 6000);
@@ -164,7 +145,6 @@ async function autoPush() {
       showToast(`Pushed ${r.pushed} file(s)`, 'success', 2000);
     }
   } catch (e) {
-    console.log('[auto-sync] autoPush: failed — ' + e.message);
     updateSyncIndicator('error', 'Sync error');
     showToast('Auto-sync failed: ' + e.message, 'error', 4000);
   }
@@ -249,7 +229,6 @@ function promptRenameUntitled() {
 
 function handleEditorChange(content) {
   setContent(content);
-  console.log('[auto-sync] markDirty("' + state.filename + '") from handleEditorChange');
   markDirty(state.filename);
 }
 

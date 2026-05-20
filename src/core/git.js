@@ -103,7 +103,6 @@ export function setRemoteShaMap(map) {
 
 export function markDirty(fileName) {
   dirtyFiles.add(fileName);
-  console.log('[git] markDirty("' + fileName + '") size=' + dirtyFiles.size);
 }
 
 export function clearDirty(keep) {
@@ -112,7 +111,6 @@ export function clearDirty(keep) {
   } else {
     dirtyFiles.clear();
   }
-  console.log('[git] clearDirty() — cleared, remaining=' + dirtyFiles.size);
 }
 
 export function clearDirtyImages(keep) {
@@ -121,39 +119,32 @@ export function clearDirtyImages(keep) {
   } else {
     dirtyImages.clear();
   }
-  console.log('[git] clearDirtyImages() — cleared, remaining=' + dirtyImages.size);
 }
 
 export function getDirtyFiles() {
   const copy = new Set(dirtyFiles);
-  console.log('[git] getDirtyFiles() → ' + copy.size + ' file(s)');
   return copy;
 }
 
 export function markDirtyImage(name) {
   dirtyImages.add(name);
-  console.log('[git] markDirtyImage("' + name + '") size=' + dirtyImages.size);
 }
 
 export function getDirtyImages() {
   const copy = new Set(dirtyImages);
-  console.log('[git] getDirtyImages() → ' + copy.size + ' image(s)');
   return copy;
 }
 
 export function markDeletedImage(name) {
   deletedImages.add(name);
-  console.log('[git] markDeletedImage("' + name + '") size=' + deletedImages.size);
 }
 
 export function clearDeletedImages() {
-  console.log('[git] clearDeletedImages() — cleared ' + deletedImages.size + ' image(s)');
   deletedImages.clear();
 }
 
 export function getDeletedImages() {
   const copy = new Set(deletedImages);
-  console.log('[git] getDeletedImages() → ' + copy.size + ' image(s)');
   return copy;
 }
 
@@ -500,7 +491,6 @@ async function pullImages(settings, shaMap, onProgress) {
       shaMap[imgKey] = sha;
       syncedImages++;
     } catch (e) {
-      console.warn('[git] Failed to pull image ' + img.name + ': ' + e.message);
     }
   }
 
