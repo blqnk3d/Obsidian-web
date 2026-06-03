@@ -29,6 +29,8 @@ async function init() {
 
   await initStorage();
 
+  registerServiceWorker();
+
   previewEl.addEventListener('dblclick', (e) => {
     const target = findSourceTarget(e.target);
     if (target) searchAndJump(target);
@@ -277,6 +279,12 @@ function findSourceTarget(el) {
   if (blockquote) return blockquote.textContent.trim().split('\n')[0].trim();
 
   return null;
+}
+
+function registerServiceWorker() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
 }
 
 document.addEventListener('DOMContentLoaded', init);
