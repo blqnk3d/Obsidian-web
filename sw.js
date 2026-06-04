@@ -1,25 +1,27 @@
-const CACHE = 'static-obsidian-v2';
+const CACHE = 'static-obsidian-v3';
+
+const BASE = self.location.pathname.replace(/\/sw\.js$/, '') || '';
 
 const PRECACHE = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/assets/css/styles.css',
-  '/assets/logo.svg',
-  '/src/app.js',
-  '/src/core/state.js',
-  '/src/core/settings.js',
-  '/src/core/storage.js',
-  '/src/core/git.js',
-  '/src/ui/editor.js',
-  '/src/ui/handlers.js',
-  '/src/ui/sidebar.js',
-  '/src/ui/toast.js',
-  '/src/ui/modal.js',
-  '/src/ui/drag.js',
-  '/src/ui/modals.js',
-  '/src/render/preview.js',
-  '/src/parser/config.js',
+  BASE + '/',
+  BASE + '/index.html',
+  BASE + '/manifest.json',
+  BASE + '/assets/css/styles.css',
+  BASE + '/assets/logo.svg',
+  BASE + '/src/app.js',
+  BASE + '/src/core/state.js',
+  BASE + '/src/core/settings.js',
+  BASE + '/src/core/storage.js',
+  BASE + '/src/core/git.js',
+  BASE + '/src/ui/editor.js',
+  BASE + '/src/ui/handlers.js',
+  BASE + '/src/ui/sidebar.js',
+  BASE + '/src/ui/toast.js',
+  BASE + '/src/ui/modal.js',
+  BASE + '/src/ui/drag.js',
+  BASE + '/src/ui/modals.js',
+  BASE + '/src/render/preview.js',
+  BASE + '/src/parser/config.js',
 ];
 
 self.addEventListener('install', (event) => {
@@ -40,6 +42,8 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
+  const isOwn = url.origin === self.location.origin && url.pathname.startsWith(BASE + '/');
+
   if (url.origin === 'https://cdn.jsdelivr.net' || url.hostname === 'fonts.gstatic.com') {
     event.respondWith(
       caches.match(event.request).then((cached) => cached || fetch(event.request).then((res) => {
@@ -54,7 +58,10 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(fetch(event.request));
     return;
   }
-  event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request))
-  );
+  if (isOwn) {
+    event.respondWith(
+      caches.match(event.request).then((cached) => cached || fetch(event.request))
+    );
+    return;
+  }
 });

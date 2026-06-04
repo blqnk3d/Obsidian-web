@@ -283,7 +283,8 @@ function findSourceTarget(el) {
 
 function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+    const swUrl = new URL('../sw.js', import.meta.url).href;
+    navigator.serviceWorker.register(swUrl).catch(() => {});
   }
 }
 

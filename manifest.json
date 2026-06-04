@@ -2,9 +2,17 @@
   "name": "Static Obsidian",
   "short_name": "Obsidian Web",
   "description": "Markdown editor with live preview and Obsidian-like syntax",
-  "start_url": "/",
+  "start_url": ".",
+  "scope": ".",
   "display": "standalone",
   "background_color": "#1e1e1e",
   "theme_color": "#8a8a8a",
-  "icons": []
+  "icons": [
+    {
+      "src": "assets/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
 }
