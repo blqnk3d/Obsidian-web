@@ -1,4 +1,4 @@
-const CACHE = 'static-obsidian-v3';
+const CACHE = 'static-obsidian-v4';
 
 const BASE = self.location.pathname.replace(/\/sw\.js$/, '') || '';
 
@@ -22,11 +22,26 @@ const PRECACHE = [
   BASE + '/src/ui/modals.js',
   BASE + '/src/render/preview.js',
   BASE + '/src/parser/config.js',
+
+  // CDN dependencies – precached for offline support
+  'https://cdn.jsdelivr.net/npm/markdown-it@14.1.1/+esm',
+  'https://cdn.jsdelivr.net/npm/dompurify@3.2.4/+esm',
+  'https://cdn.jsdelivr.net/npm/katex@0.16.11/+esm',
+  'https://cdn.jsdelivr.net/npm/mermaid@11.4.1/+esm',
+  'https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css',
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll(PRECACHE))
+    caches.open(CACHE).then((cache) =>
+      Promise.all(
+        PRECACHE.map((url) =>
+          cache.add(url).catch(() => {
+            console.warn('[SW] failed to cache', url);
+          })
+        )
+      )
+    )
   );
   self.skipWaiting();
 });
@@ -59,8 +74,10 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   if (isOwn) {
+    const clean = new URL(event.request.url);
+    clean.search = '';
     event.respondWith(
-      caches.match(event.request).then((cached) => cached || fetch(event.request))
+      caches.match(clean.href).then((cached) => cached || fetch(event.request))
     );
     return;
   }
