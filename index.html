@@ -8,7 +8,6 @@
 <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
 <link rel="manifest" href="manifest.json">
 <link rel="stylesheet" href="assets/css/styles.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
 </head>
 <body>
 <div id="app">
@@ -120,18 +119,6 @@
     </section>
   </main>
 </div>
-
-<script type="importmap">
-{
-  "imports": {
-    "markdown-it": "https://cdn.jsdelivr.net/npm/markdown-it@14.1.1/+esm",
-    "dompurify": "https://cdn.jsdelivr.net/npm/dompurify@3.2.4/+esm",
-    "katex": "https://cdn.jsdelivr.net/npm/katex@0.16.11/+esm",
-    "mermaid": "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/+esm"
-  }
-}
-</script>
-
-<script type="module" src="src/app.js?v=4"></script>
+<script type="module" src="/src/app.js"></script>
 </body>
 </html>

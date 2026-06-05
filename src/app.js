@@ -9,6 +9,7 @@ import { makeDraggable } from './ui/drag.js';
 import { createPromptModal } from './ui/modal.js';
 import { showToast } from './ui/toast.js';
 import { pullFromRemote, pushToRemote, getGitSettings, getDirtyFiles, getDirtyImages, markDirty, clearDirty } from './core/git.js';
+import 'katex/dist/katex.min.css';
 
 let saveTimer = null;
 const SAVE_DEBOUNCE = 500;
@@ -28,8 +29,6 @@ async function init() {
   initSyncIndicator();
 
   await initStorage();
-
-  registerServiceWorker();
 
   previewEl.addEventListener('dblclick', (e) => {
     const target = findSourceTarget(e.target);
@@ -279,14 +278,6 @@ function findSourceTarget(el) {
   if (blockquote) return blockquote.textContent.trim().split('\n')[0].trim();
 
   return null;
-}
-
-function registerServiceWorker() {
-  if ('serviceWorker' in navigator) {
-    const swUrl = new URL('../sw.js', import.meta.url);
-    swUrl.search = '';
-    navigator.serviceWorker.register(swUrl.href).catch(() => {});
-  }
 }
 
 document.addEventListener('DOMContentLoaded', init);
