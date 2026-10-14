@@ -28,6 +28,12 @@
       this.linkDist = 1;
       this.colors = {};
       this.destroyed = false;
+      // Collections are filled by buildGraph(), which runs after buildDom().
+      // buildDom() fires resize() -> wake() -> startLoop(), so they must exist
+      // up front or the first loop iteration dereferences undefined.
+      this.nodes = [];
+      this.edges = [];
+      this.neighbors = new Map();
 
       this.buildDom();
       this.readColors();
@@ -83,7 +89,19 @@
       this.container.appendChild(this.body);
       this.fontFamily = getComputedStyle(document.body).fontFamily || 'sans-serif';
 
-      this.ro = new ResizeObserver(() => this.resize());
+      this.ro = new ResizeObserver(() => {
+        // Defer to the next frame: mutating the canvas inside the observer
+        // callback can trigger another notification in the same delivery
+        // cycle, which browsers surface as "ResizeObserver loop completed
+        // with undelivered notifications". One in-flight resize is enough.
+        if (this._resizeScheduled || this.destroyed) return;
+        this._resizeScheduled = true;
+        const raf = global.requestAnimationFrame || (fn => setTimeout(fn, 16));
+        raf(() => {
+          this._resizeScheduled = false;
+          if (!this.destroyed) this.resize();
+        });
+      });
       this.ro.observe(this.body);
       this.resize();
     }
@@ -117,8 +135,13 @@
       const dpr = global.devicePixelRatio || 1;
       const w = this.body.clientWidth, h = this.body.clientHeight;
       if (!w || !h) return;
-      this.canvas.width = Math.round(w * dpr);
-      this.canvas.height = Math.round(h * dpr);
+      // Skip when nothing changed: assigning canvas.width/height clears the
+      // canvas and can itself provoke a resize notification.
+      if (w === this.w && h === this.h && dpr === this._canvasDpr) return;
+      this._canvasDpr = dpr;
+      const cw = Math.round(w * dpr), ch = Math.round(h * dpr);
+      if (this.canvas.width !== cw) this.canvas.width = cw;
+      if (this.canvas.height !== ch) this.canvas.height = ch;
       this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       this.w = w; this.h = h;
       if (!this._initializedView) {
@@ -233,7 +256,7 @@
 
     /** Fit all nodes into the viewport. */
     fitToView() {
-      if (!this.nodes.length || !this.w || !this.h) return;
+      if (!this.nodes || !this.nodes.length || !this.w || !this.h) return;
       let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
       for (const n of this.nodes) {
         if (n.x < minX) minX = n.x;
@@ -252,7 +275,7 @@
 
     /* ---------- physics ---------- */
     tick() {
-      const nodes = this.nodes;
+      const nodes = this.nodes || [];
       const n = nodes.length;
       if (!n) { this.alpha = 0; return; }
       const REP = 2600 * this.repulsion;
@@ -304,6 +327,7 @@
     draw() {
       const ctx = this.ctx;
       if (!this.w || !this.h) return;
+      if (!this.nodes || !this.edges) return;
       ctx.clearRect(0, 0, this.w, this.h);
       ctx.save();
       ctx.translate(this.tx, this.ty);

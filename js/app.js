@@ -143,8 +143,18 @@
         Obs.util.notice('Something went wrong: ' + msg, 'error', 4000);
       } catch (e) { /* ignore */ }
     };
-    window.addEventListener('error', e => report('Uncaught error', e.error || e.message));
-    window.addEventListener('unhandledrejection', e => report('Unhandled promise rejection', e.reason));
+    // Browsers emit this warning when an observer callback mutates layout; it
+    // is non-fatal and not actionable, so don't log it or show a notice.
+    const isBenign = err => /ResizeObserver loop/i.test((err && err.message) || String(err || ''));
+    window.addEventListener('error', e => {
+      const err = e.error || e.message;
+      if (isBenign(err)) { if (e.preventDefault) e.preventDefault(); return; }
+      report('Uncaught error', err);
+    });
+    window.addEventListener('unhandledrejection', e => {
+      if (isBenign(e.reason)) { if (e.preventDefault) e.preventDefault(); return; }
+      report('Unhandled promise rejection', e.reason);
+    });
   }
 
   function updateStatusRight() {
