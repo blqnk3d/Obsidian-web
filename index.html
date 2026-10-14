@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' file:; style-src 'self' file:; img-src 'self' blob: data: file:; media-src 'self' blob: file:; font-src 'self' file:; connect-src 'none'; object-src 'none'; frame-src 'none'; worker-src 'self' blob:; base-uri 'none'; form-action 'none'">
+  <title>Obsidian Web</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/editor.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2l7 5.5-2.6 11.2a2 2 0 0 1-2 1.3h-4.8a2 2 0 0 1-2-1.3L5 7.5z' fill='%238a7cf8'/%3E%3C/svg%3E">
+</head>
+<body>
+  <noscript>This app requires JavaScript.</noscript>
+
+  <div id="app">
+    <!-- Left icon ribbon -->
+    <div id="ribbon">
+      <div class="ribbon-section ribbon-top">
+        <button class="ribbon-btn" data-action="new-note" data-icon="file-plus" title="New note (Ctrl+Alt+N)"></button>
+        <button class="ribbon-btn" data-side="files" data-icon="folder" title="File explorer"></button>
+        <button class="ribbon-btn" data-side="search" data-icon="search" title="Search (Ctrl+Shift+F)"></button>
+        <button class="ribbon-btn" data-side="tags" data-icon="hash" title="Tags"></button>
+        <button class="ribbon-btn" data-action="graph" data-icon="graph" title="Graph view (Ctrl+G)"></button>
+        <button class="ribbon-btn" data-action="daily" data-icon="calendar" title="Open today's daily note"></button>
+        <button class="ribbon-btn" data-action="random" data-icon="dice" title="Open random note"></button>
+      </div>
+      <div class="ribbon-section ribbon-bottom">
+        <button class="ribbon-btn" data-action="toggle-theme" data-icon="moon" title="Toggle dark / light theme"></button>
+        <button class="ribbon-btn" data-action="settings" data-icon="sliders" title="Settings (Ctrl+,)"></button>
+      </div>
+    </div>
+
+    <!-- Left sidebar: explorer / search / tags -->
+    <aside id="left-sidebar">
+      <div id="left-panel-header">
+        <span id="left-panel-title">Files</span>
+        <div id="left-panel-actions"></div>
+        <button id="left-collapse-btn" class="icon-btn" title="Collapse sidebar"></button>
+      </div>
+      <div id="left-panel-content"></div>
+    </aside>
+
+    <!-- Main column -->
+    <main id="main">
+      <div id="tab-bar">
+        <div id="tabs"></div>
+        <button id="tab-bar-plus" class="icon-btn" title="New note"></button>
+        <div class="tab-bar-spacer"></div>
+        <button id="right-sidebar-toggle" class="icon-btn" title="Toggle right sidebar"></button>
+        <button id="left-sidebar-toggle-mobile" class="icon-btn only-mobile" title="Toggle file explorer"></button>
+      </div>
+      <div id="view-container">
+        <div id="empty-state" class="empty-state">
+          <div class="empty-logo"></div>
+          <h2>Obsidian Web</h2>
+          <p>A local-first markdown knowledge base. Everything is stored in your browser (IndexedDB).</p>
+          <div class="empty-actions">
+            <button class="btn" data-empty-action="new-note">Create new note</button>
+            <button class="btn" data-empty-action="open-switcher">Quick switcher <kbd>Ctrl O</kbd></button>
+            <button class="btn" data-empty-action="graph">Open graph view</button>
+            <button class="btn" data-empty-action="import">Import .md files</button>
+          </div>
+        </div>
+      </div>
+      <div id="status-bar">
+        <div id="status-left"></div>
+        <div id="status-right"></div>
+      </div>
+    </main>
+
+    <!-- Right sidebar: outline / backlinks -->
+    <aside id="right-sidebar">
+      <div id="right-panel-header">
+        <span id="right-panel-title">Note info</span>
+        <button id="right-collapse-btn" class="icon-btn" title="Collapse sidebar"></button>
+      </div>
+      <div id="right-panel-content"></div>
+    </aside>
+  </div>
+
+  <!-- Floating layers -->
+  <div id="print-root"></div>
+  <div id="modal-root"></div>
+  <div id="menu-root"></div>
+  <div id="hover-preview"></div>
+  <div id="notice-container"></div>
+
+  <!-- Hidden inputs -->
+  <input type="file" id="import-files-input" multiple accept=".md,.markdown,.txt,.png,.jpg,.jpeg,.gif,.webp,.svg,.bmp" hidden>
+  <input type="file" id="import-dir-input" webkitdirectory multiple hidden>
+  <input type="file" id="import-json-input" accept=".json" hidden>
+
+  <script src="js/util.js"></script>
+  <script src="js/sanitize.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/zip.js"></script>
+  <script src="js/markdown.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/vault.js"></script>
+  <script src="js/graph.js"></script>
+  <script src="js/editor.js"></script>
+  <script src="js/slash.js"></script>
+  <script src="js/leftpanes.js"></script>
+  <script src="js/rightpane.js"></script>
+  <script src="js/tabs.js"></script>
+  <script src="js/palette.js"></script>
+  <script src="js/commands.js"></script>
+  <script src="js/settings.js"></script>
+  <script src="js/exportimport.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
