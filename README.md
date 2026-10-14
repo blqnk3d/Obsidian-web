@@ -17,8 +17,7 @@ python3 -m http.server 8000
 # open http://localhost:8000
 ```
 
-On first launch a small **welcome vault** is created (Welcome note, Markdown Cheatsheet, two graph-demo notes,
-a meeting template). Delete them any time — or start clean via *Settings → Data → Erase all data*.
+On first launch the vault is empty — create a note, import `.md` files, or use the quick switcher to get started.
 
 ## Features (vs. real Obsidian)
 
@@ -89,7 +88,7 @@ obsidian-web/
 │   ├── commands.js         command registry + hotkey dispatch
 │   ├── settings.js         settings modal (appearance/editor/files/data/hotkeys)
 │   ├── exportimport.js     ZIP / .md / JSON export, file & folder import
-│   └── app.js              bootstrap, wiring, welcome vault
+│   └── app.js              bootstrap, wiring
 ```
 
 ## Security
